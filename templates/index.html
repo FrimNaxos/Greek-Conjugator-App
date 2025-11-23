@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Greek Verb Conjugator</title>
+    <style>
+        /* Basic CSS for a clean look */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        #search-form {
+            display: flex;
+            margin-bottom: 30px;
+        }
+        #search-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        #search-button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #search-button:hover {
+            background-color: #0056b3;
+        }
+        #results-container {
+            border-top: 2px solid #ccc;
+            padding-top: 20px;
+        }
+        #conjugation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        #conjugation-table th, #conjugation-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #conjugation-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .tense-header {
+            background-color: #e0e0e0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .message {
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            border-radius: 4px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Greek Verb Conjugator Lookup</h1>
+        <form id="search-form">
+            <input type="text" id="search-input" placeholder="Enter English verb (e.g., 'to speak')">
+            <button type="submit" id="search-button">Search</button>
+        </form>
+
+        <div id="results-container">
+            <div id="message-area"></div>
+            <h2 id="verb-title" style="text-align: center;"></h2>
+            <table id="conjugation-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Person</th>
+                        <th colspan="3" class="tense-header">Indicative Tenses</th>
+                        <th colspan="2" class="tense-header">Imperative</th>
+                    </tr>
+                    <tr>
+                        <th>Present</th>
+                        <th>Aorist (Past)</th>
+                        <th>Future</th>
+                        <th>Present (Imperfect)</th>
+                        <th>Aorist (Perfect)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Stop the form from submitting normally
+            
+            const searchTerm = document.getElementById('search-input').value;
+            const messageArea = document.getElementById('message-area');
+            const verbTitle = document.getElementById('verb-title');
+            const tableBody = document.querySelector('#conjugation-table tbody');
+            const conjugationTable = document.getElementById('conjugation-table');
+
+            // Clear previous results and messages
+            messageArea.innerHTML = '';
+            tableBody.innerHTML = '';
+            verbTitle.textContent = '';
+            conjugationTable.style.display = 'none';
+
+            if (!searchTerm.trim()) {
+                messageArea.innerHTML = '<div class="message">Please enter a verb to search.</div>';
+                return;
+            }
+
+            // Fetch data from the Flask API
+            const response = await fetch(`/search?term=${encodeURIComponent(searchTerm)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                const verbData = data.verb;
+                verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}`;
+                conjugationTable.style.display = 'table';
+                
+                // --- Build the Conjugation Table ---
+                const persons = [
+                    { label: 'Εγώ (I)', person: 'Ego' },
+                    { label: 'Εσύ (You)', person: 'Esy' },
+                    { label: 'Αυτός/ή/ό (He/She/It)', person: 'HeSheIt' },
+                    { label: 'Εμείς (We)', person: 'We' },
+                    { label: 'Εσείς (You pl)', person: 'YouPl' },
+                    { label: 'Αυτοί/ές/ά (They)', person: 'They' }
+                ];
+
+                persons.forEach(p => {
+                    const tr = document.createElement('tr');
+                    
+                    // 1. Person Label
+                    const tdLabel = document.createElement('td');
+                    tdLabel.textContent = p.label;
+                    tr.appendChild(tdLabel);
+                    
+                    // 2. Present Tense
+                    tr.insertCell().textContent = verbData[`Present_${p.person}`] || '-';
+
+                    // 3. Aorist Tense
+                    tr.insertCell().textContent = verbData[`Aorist_${p.person}`] || '-';
+                    
+                    // 4. Future Tense
+                    tr.insertCell().textContent = verbData[`Future_${p.person}`] || '-';
+                    
+                    // --- IMPERATIVE (Only for Esy and YouPl) ---
+                    
+                    // 5. Present Imperative
+                    if (p.person === 'Esy' || p.person === 'YouPl') {
+                        tr.insertCell().textContent = verbData[`Present_Imperative_${p.person}`] || '-';
+                        tr.insertCell().textContent = verbData[`Aorist_Imperative_${p.person}`] || '-';
+                    } else {
+                        // For other persons, the imperative cells are blank
+                        tr.insertCell().textContent = '-'; 
+                        tr.insertCell().textContent = '-';
+                    }
+
+                    tableBody.appendChild(tr);
+                });
+
+            } else {
+                messageArea.innerHTML = `<div class="message">${data.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
