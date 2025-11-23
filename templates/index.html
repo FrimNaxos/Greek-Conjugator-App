@@ -2,79 +2,126 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Greek Verb Conjugator</title>
+    <title>Greek Verb Conjugator Lookup</title>
     <style>
-        /* Basic CSS for a clean look */
+        /* Global Styles */
         body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
         }
         .container {
-            max-width: 800px;
-            margin: auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 950px;
+            margin: 50px auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            color: #333;
+            color: #004d99; /* Deep Blue */
             text-align: center;
+            margin-bottom: 25px;
+            font-weight: 300;
         }
+
+        /* Search Bar Styling */
         #search-form {
             display: flex;
-            margin-bottom: 30px;
+            gap: 10px;
+            margin-bottom: 40px;
         }
         #search-input {
             flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px 0 0 4px;
-            font-size: 16px;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 17px;
+            transition: border-color 0.3s;
+        }
+        #search-input:focus {
+            border-color: #007bff;
+            outline: none;
         }
         #search-button {
-            padding: 10px 20px;
-            background-color: #007bff;
+            padding: 12px 25px;
+            background-color: #007bff; /* Bright Blue */
             color: white;
             border: none;
-            border-radius: 0 4px 4px 0;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 17px;
+            transition: background-color 0.3s;
         }
         #search-button:hover {
             background-color: #0056b3;
         }
-        #results-container {
-            border-top: 2px solid #ccc;
-            padding-top: 20px;
+
+        /* Verb Title */
+        #verb-title {
+            text-align: center;
+            color: #1a1a1a;
+            font-size: 1.8em;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
         }
+
+        /* Table Styling */
         #conjugation-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate; 
+            border-spacing: 0;
             margin-top: 20px;
+            overflow: hidden; 
         }
         #conjugation-table th, #conjugation-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            font-size: 0.95em;
         }
         #conjugation-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+            background-color: #004d99; /* Deep Blue Header */
+            color: white;
+            font-weight: 600;
+            border-top: none;
+            border-bottom: 2px solid #004d99;
         }
         .tense-header {
-            background-color: #e0e0e0;
-            text-align: center;
+            background-color: #3498db; /* Lighter Blue for Tense Groups */
+            color: white;
+            font-size: 1.1em;
             font-weight: bold;
         }
+        /* Style for the Person column */
+        #conjugation-table tbody tr td:first-child {
+            text-align: left;
+            background-color: #f7f7f7;
+            font-weight: bold;
+            color: #444;
+        }
+        /* Zebra striping for better readability */
+        #conjugation-table tbody tr:nth-child(even) {
+            background-color: #fcfcfc;
+        }
+        #conjugation-table tbody tr:hover {
+            background-color: #f0f8ff; /* Light hover effect */
+            cursor: default;
+        }
+        
+        /* Message Styling */
         .message {
-            padding: 10px;
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            border-radius: 4px;
+            padding: 15px;
+            background-color: #fff8e1; /* Light yellow */
+            border: 1px solid #ffecb3; /* Darker yellow border */
+            color: #6d4c41; /* Brown text */
+            border-radius: 8px;
             text-align: center;
+            font-size: 1.1em;
         }
     </style>
 </head>
@@ -82,7 +129,7 @@
     <div class="container">
         <h1>Greek Verb Conjugator Lookup</h1>
         <form id="search-form">
-            <input type="text" id="search-input" placeholder="Enter English verb (e.g., 'to speak')">
+            <input type="text" id="search-input" placeholder="Enter English verb (e.g., 'eat')" autofocus>
             <button type="submit" id="search-button">Search</button>
         </form>
 
@@ -94,7 +141,7 @@
                     <tr>
                         <th rowspan="2">Person</th>
                         <th colspan="3" class="tense-header">Indicative Tenses</th>
-                        <th colspan="2" class="tense-header">Imperative</th>
+                        <th colspan="2" class="tense-header">Imperative Mood</th>
                     </tr>
                     <tr>
                         <th>Present</th>
@@ -133,6 +180,13 @@
 
             // Fetch data from the Flask API
             const response = await fetch(`/search?term=${encodeURIComponent(searchTerm)}`);
+            
+            // Check for HTTP errors first (e.g., 500 server error)
+            if (!response.ok) {
+                messageArea.innerHTML = `<div class="message">Server error occurred. Please check the logs.</div>`;
+                return;
+            }
+
             const data = await response.json();
 
             if (data.success) {
@@ -142,37 +196,38 @@
                 
                 // --- Build the Conjugation Table ---
                 const persons = [
-                    { label: 'Εγώ (I)', person: 'Ego' },
-                    { label: 'Εσύ (You)', person: 'Esy' },
-                    { label: 'Αυτός/ή/ό (He/She/It)', person: 'HeSheIt' },
-                    { label: 'Εμείς (We)', person: 'We' },
-                    { label: 'Εσείς (You pl)', person: 'YouPl' },
-                    { label: 'Αυτοί/ές/ά (They)', person: 'They' }
+                    // Enhanced array structure for cleaner output
+                    { label: 'Εγώ', description: '(I)', person: 'Ego' },
+                    { label: 'Εσύ', description: '(You)', person: 'Esy' },
+                    { label: 'Αυτός/ή/ό', description: '(He/She/It)', person: 'HeSheIt' },
+                    { label: 'Εμείς', description: '(We)', person: 'We' },
+                    { label: 'Εσείς', description: '(You pl)', person: 'YouPl' },
+                    { label: 'Αυτοί/ές/ά', description: '(They)', person: 'They' }
                 ];
 
                 persons.forEach(p => {
                     const tr = document.createElement('tr');
                     
-                    // 1. Person Label
+                    // 1. Person Label (with separated Greek/English)
                     const tdLabel = document.createElement('td');
-                    tdLabel.textContent = p.label;
+                    tdLabel.innerHTML = `<strong>${p.label}</strong> <span style="font-size:0.8em; color:#777;">${p.description}</span>`;
                     tr.appendChild(tdLabel);
                     
                     // 2. Present Tense
-                    tr.insertCell().textContent = verbData[`Present_${p.person}`] || '-';
+                    tr.insertCell().textContent = verbData[`Present_${p.person}`] ? verbData[`Present_${p.person}`].trim() : '-';
 
                     // 3. Aorist Tense
-                    tr.insertCell().textContent = verbData[`Aorist_${p.person}`] || '-';
+                    tr.insertCell().textContent = verbData[`Aorist_${p.person}`] ? verbData[`Aorist_${p.person}`].trim() : '-';
                     
                     // 4. Future Tense
-                    tr.insertCell().textContent = verbData[`Future_${p.person}`] || '-';
+                    tr.insertCell().textContent = verbData[`Future_${p.person}`] ? verbData[`Future_${p.person}`].trim() : '-';
                     
                     // --- IMPERATIVE (Only for Esy and YouPl) ---
                     
                     // 5. Present Imperative
                     if (p.person === 'Esy' || p.person === 'YouPl') {
-                        tr.insertCell().textContent = verbData[`Present_Imperative_${p.person}`] || '-';
-                        tr.insertCell().textContent = verbData[`Aorist_Imperative_${p.person}`] || '-';
+                        tr.insertCell().textContent = verbData[`Present_Imperative_${p.person}`] ? verbData[`Present_Imperative_${p.person}`].trim() : '-';
+                        tr.insertCell().textContent = verbData[`Aorist_Imperative_${p.person}`] ? verbData[`Aorist_Imperative_${p.person}`].trim() : '-';
                     } else {
                         // For other persons, the imperative cells are blank
                         tr.insertCell().textContent = '-'; 
