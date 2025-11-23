@@ -27,11 +27,43 @@
             font-weight: 300;
         }
 
+        /* Tabs Navigation */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 30px;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-size: 1.1em;
+            color: #555;
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
         /* Search Bar Styling */
-        #search-form {
+        #search-controls {
             display: flex;
             gap: 10px;
-            margin-bottom: 40px;
+        }
+        #search-form {
+            display: flex;
+            flex-grow: 1;
+            gap: 10px;
         }
         #search-input {
             flex-grow: 1;
@@ -45,15 +77,21 @@
             border-color: #007bff;
             outline: none;
         }
-        #search-button {
-            padding: 12px 25px;
-            background-color: #007bff; /* Bright Blue */
+        #search-button, #random-button {
+            padding: 12px 20px;
+            background-color: #007bff; 
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-size: 17px;
             transition: background-color 0.3s;
+        }
+        #random-button {
+            background-color: #28a745; /* Green for Random */
+        }
+        #random-button:hover {
+            background-color: #1e7e34;
         }
         #search-button:hover {
             background-color: #0056b3;
@@ -85,161 +123,314 @@
             font-size: 0.95em;
         }
         #conjugation-table th {
-            background-color: #004d99; /* Deep Blue Header */
+            background-color: #004d99; 
             color: white;
             font-weight: 600;
             border-top: none;
             border-bottom: 2px solid #004d99;
         }
         .tense-header {
-            background-color: #3498db; /* Lighter Blue for Tense Groups */
+            background-color: #3498db; 
             color: white;
             font-size: 1.1em;
             font-weight: bold;
         }
-        /* Style for the Person column */
         #conjugation-table tbody tr td:first-child {
             text-align: left;
             background-color: #f7f7f7;
             font-weight: bold;
             color: #444;
         }
-        /* Zebra striping for better readability */
         #conjugation-table tbody tr:nth-child(even) {
             background-color: #fcfcfc;
         }
         #conjugation-table tbody tr:hover {
-            background-color: #f0f8ff; /* Light hover effect */
+            background-color: #f0f8ff; 
             cursor: default;
         }
         
         /* Message Styling */
         .message {
             padding: 15px;
-            background-color: #fff8e1; /* Light yellow */
-            border: 1px solid #ffecb3; /* Darker yellow border */
-            color: #6d4c41; /* Brown text */
+            background-color: #fff8e1; 
+            border: 1px solid #ffecb3; 
+            color: #6d4c41; 
             border-radius: 8px;
             text-align: center;
             font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        
+        /* Quiz Styles */
+        #quiz-verb {
+            font-size: 2em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #004d99;
+        }
+        #quiz-check-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #quiz-input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 17px;
+        }
+        #quiz-check-button {
+            padding: 12px 25px;
+            background-color: #ffc107; /* Yellow */
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 17px;
+        }
+        .quiz-result {
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        .correct {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Greek Verb Conjugator Lookup</h1>
-        <form id="search-form">
-            <input type="text" id="search-input" placeholder="Enter English verb (e.g., 'eat')" autofocus>
-            <button type="submit" id="search-button">Search</button>
-        </form>
-
-        <div id="results-container">
-            <div id="message-area"></div>
-            <h2 id="verb-title" style="text-align: center;"></h2>
-            <table id="conjugation-table" style="display: none;">
-                <thead>
-                    <tr>
-                        <th rowspan="2">Person</th>
-                        <th colspan="3" class="tense-header">Indicative Tenses</th>
-                        <th colspan="2" class="tense-header">Imperative Mood</th>
-                    </tr>
-                    <tr>
-                        <th>Present</th>
-                        <th>Aorist (Past)</th>
-                        <th>Future</th>
-                        <th>Present (Imperfect)</th>
-                        <th>Aorist (Perfect)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
+        <h1>Greek Verb Conjugator</h1>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'SearchTab')">🔍 Conjugation Search</button>
+            <button class="tab-button" onclick="openTab(event, 'QuizTab')">🧠 Quiz</button>
         </div>
+
+        <div id="SearchTab" class="tab-content active">
+            <h2>Find Conjugations</h2>
+            <div id="search-controls">
+                <form id="search-form">
+                    <input type="text" id="search-input" placeholder="Enter English or Greek verb (e.g., 'eat' or 'τρώω')" autofocus>
+                    <button type="submit" id="search-button">Search</button>
+                </form>
+                <button id="random-button">Random Verb</button>
+            </div>
+
+            <div id="results-container">
+                <div id="message-area"></div>
+                <h2 id="verb-title"></h2>
+                <table id="conjugation-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Person</th>
+                            <th colspan="3" class="tense-header">Indicative Tenses</th>
+                            <th colspan="2" class="tense-header">Imperative Mood</th>
+                        </tr>
+                        <tr>
+                            <th>Present</th>
+                            <th>Aorist (Past)</th>
+                            <th>Future</th>
+                            <th>Present (Imperfect)</th>
+                            <th>Aorist (Perfect)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="QuizTab" class="tab-content">
+            <h2>Verb Translation Quiz</h2>
+            <p class="message">Translate the Greek verb below into English.</p>
+            
+            <div id="quiz-area">
+                <div id="quiz-verb"></div>
+                
+                <form id="quiz-check-form">
+                    <input type="text" id="quiz-input" placeholder="Enter the English translation (e.g., To eat)">
+                    <button type="submit" id="quiz-check-button">Check</button>
+                </form>
+
+                <div id="quiz-result-area"></div>
+                <button id="next-quiz-button" style="display: none; padding: 10px; margin-top: 10px;" onclick="loadRandomQuiz()">Next Verb</button>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        document.getElementById('search-form').addEventListener('submit', async function(e) {
-            e.preventDefault(); // Stop the form from submitting normally
-            
-            const searchTerm = document.getElementById('search-input').value;
-            const messageArea = document.getElementById('message-area');
+        // --- GLOBALS ---
+        let currentQuizVerb = null;
+
+        // --- CORE LOGIC (Reuse for Search and Random) ---
+        function displayConjugation(data) {
             const verbTitle = document.getElementById('verb-title');
             const tableBody = document.querySelector('#conjugation-table tbody');
             const conjugationTable = document.getElementById('conjugation-table');
+            const messageArea = document.getElementById('message-area');
 
-            // Clear previous results and messages
             messageArea.innerHTML = '';
             tableBody.innerHTML = '';
             verbTitle.textContent = '';
             conjugationTable.style.display = 'none';
 
-            if (!searchTerm.trim()) {
-                messageArea.innerHTML = '<div class="message">Please enter a verb to search.</div>';
+            if (!data.success) {
+                messageArea.innerHTML = `<div class="message">${data.message}</div>`;
                 return;
             }
 
-            // Fetch data from the Flask API
-            const response = await fetch(`/search?term=${encodeURIComponent(searchTerm)}`);
+            const verbData = data.verb;
+            verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}`;
+            conjugationTable.style.display = 'table';
             
-            // Check for HTTP errors first (e.g., 500 server error)
-            if (!response.ok) {
-                messageArea.innerHTML = `<div class="message">Server error occurred. Please check the logs.</div>`;
+            const persons = [
+                { label: 'Εγώ', description: '(I)', person: 'Ego' },
+                { label: 'Εσύ', description: '(You)', person: 'Esy' },
+                { label: 'Αυτός/ή/ό', description: '(He/She/It)', person: 'HeSheIt' },
+                { label: 'Εμείς', description: '(We)', person: 'We' },
+                { label: 'Εσείς', description: '(You pl)', person: 'YouPl' },
+                { label: 'Αυτοί/ές/ά', description: '(They)', person: 'They' }
+            ];
+
+            persons.forEach(p => {
+                const tr = document.createElement('tr');
+                
+                // 1. Person Label (with separated Greek/English)
+                const tdLabel = document.createElement('td');
+                tdLabel.innerHTML = `<strong>${p.label}</strong> <span style="font-size:0.8em; color:#777;">${p.description}</span>`;
+                tr.appendChild(tdLabel);
+                
+                // 2. Present Tense (Using .trim() to clean up whitespace from CSV)
+                tr.insertCell().textContent = verbData[`Present_${p.person}`] ? verbData[`Present_${p.person}`].trim() : '-';
+
+                // 3. Aorist Tense
+                tr.insertCell().textContent = verbData[`Aorist_${p.person}`] ? verbData[`Aorist_${p.person}`].trim() : '-';
+                
+                // 4. Future Tense
+                tr.insertCell().textContent = verbData[`Future_${p.person}`] ? verbData[`Future_${p.person}`].trim() : '-';
+                
+                // 5. & 6. IMPERATIVE
+                if (p.person === 'Esy' || p.person === 'YouPl') {
+                    tr.insertCell().textContent = verbData[`Present_Imperative_${p.person}`] ? verbData[`Present_Imperative_${p.person}`].trim() : '-';
+                    tr.insertCell().textContent = verbData[`Aorist_Imperative_${p.person}`] ? verbData[`Aorist_Imperative_${p.person}`].trim() : '-';
+                } else {
+                    tr.insertCell().textContent = '-'; 
+                    tr.insertCell().textContent = '-';
+                }
+
+                tableBody.appendChild(tr);
+            });
+        }
+
+
+        // --- FEATURE 1: DUAL SEARCH ---
+        document.getElementById('search-form').addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            const searchTerm = document.getElementById('search-input').value;
+            if (!searchTerm.trim()) {
+                document.getElementById('message-area').innerHTML = '<div class="message">Please enter a verb to search.</div>';
                 return;
             }
 
+            const response = await fetch(`/search?term=${encodeURIComponent(searchTerm)}`);
+            const data = await response.json();
+            displayConjugation(data);
+        });
+
+        // --- FEATURE 2: RANDOM VERB BUTTON ---
+        document.getElementById('random-button').addEventListener('click', async function() {
+            const response = await fetch('/random_verb');
+            const data = await response.json();
+            displayConjugation(data);
+            document.getElementById('search-input').value = ''; // Clear search box
+        });
+
+
+        // --- FEATURE 3: QUIZ FUNCTION ---
+        async function loadRandomQuiz() {
+            // Reset quiz state
+            document.getElementById('quiz-result-area').innerHTML = '';
+            document.getElementById('quiz-input').value = '';
+            document.getElementById('quiz-check-button').style.display = 'block';
+            document.getElementById('next-quiz-button').style.display = 'none';
+
+            const response = await fetch('/random_verb');
             const data = await response.json();
 
             if (data.success) {
-                const verbData = data.verb;
-                verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}`;
-                conjugationTable.style.display = 'table';
-                
-                // --- Build the Conjugation Table ---
-                const persons = [
-                    // Enhanced array structure for cleaner output
-                    { label: 'Εγώ', description: '(I)', person: 'Ego' },
-                    { label: 'Εσύ', description: '(You)', person: 'Esy' },
-                    { label: 'Αυτός/ή/ό', description: '(He/She/It)', person: 'HeSheIt' },
-                    { label: 'Εμείς', description: '(We)', person: 'We' },
-                    { label: 'Εσείς', description: '(You pl)', person: 'YouPl' },
-                    { label: 'Αυτοί/ές/ά', description: '(They)', person: 'They' }
-                ];
-
-                persons.forEach(p => {
-                    const tr = document.createElement('tr');
-                    
-                    // 1. Person Label (with separated Greek/English)
-                    const tdLabel = document.createElement('td');
-                    tdLabel.innerHTML = `<strong>${p.label}</strong> <span style="font-size:0.8em; color:#777;">${p.description}</span>`;
-                    tr.appendChild(tdLabel);
-                    
-                    // 2. Present Tense
-                    tr.insertCell().textContent = verbData[`Present_${p.person}`] ? verbData[`Present_${p.person}`].trim() : '-';
-
-                    // 3. Aorist Tense
-                    tr.insertCell().textContent = verbData[`Aorist_${p.person}`] ? verbData[`Aorist_${p.person}`].trim() : '-';
-                    
-                    // 4. Future Tense
-                    tr.insertCell().textContent = verbData[`Future_${p.person}`] ? verbData[`Future_${p.person}`].trim() : '-';
-                    
-                    // --- IMPERATIVE (Only for Esy and YouPl) ---
-                    
-                    // 5. Present Imperative
-                    if (p.person === 'Esy' || p.person === 'YouPl') {
-                        tr.insertCell().textContent = verbData[`Present_Imperative_${p.person}`] ? verbData[`Present_Imperative_${p.person}`].trim() : '-';
-                        tr.insertCell().textContent = verbData[`Aorist_Imperative_${p.person}`] ? verbData[`Aorist_Imperative_${p.person}`].trim() : '-';
-                    } else {
-                        // For other persons, the imperative cells are blank
-                        tr.insertCell().textContent = '-'; 
-                        tr.insertCell().textContent = '-';
-                    }
-
-                    tableBody.appendChild(tr);
-                });
-
+                currentQuizVerb = data.verb;
+                // Display the Greek Verb (Infinitive) to be translated
+                document.getElementById('quiz-verb').textContent = currentQuizVerb.Greek_Verb;
             } else {
-                messageArea.innerHTML = `<div class="message">${data.message}</div>`;
+                document.getElementById('quiz-verb').textContent = "Error loading verb.";
             }
+        }
+
+        document.getElementById('quiz-check-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userAnswer = document.getElementById('quiz-input').value.trim().toLowerCase();
+            const resultArea = document.getElementById('quiz-result-area');
+            const checkButton = document.getElementById('quiz-check-button');
+            const nextButton = document.getElementById('next-quiz-button');
+
+            if (!userAnswer || !currentQuizVerb) return;
+
+            // Normalize the correct answer (remove "to " and trim)
+            const correctAnswer = currentQuizVerb.Translation.trim().toLowerCase().replace(/^to\s/, '');
+            
+            // Normalize user answer
+            const normalizedUserAnswer = userAnswer.replace(/^to\s/, '');
+
+            checkButton.style.display = 'none';
+            nextButton.style.display = 'block';
+
+            if (normalizedUserAnswer === correctAnswer) {
+                resultArea.innerHTML = `<div class="quiz-result correct">✅ Correct! The translation is "${currentQuizVerb.Translation}".</div>`;
+            } else {
+                resultArea.innerHTML = `<div class="quiz-result incorrect">❌ Incorrect. The correct translation is "${currentQuizVerb.Translation}".</div>`;
+            }
+        });
+        
+        // --- TAB SWITCHING LOGIC ---
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+
+            // If switching to the Quiz tab, load the first quiz verb
+            if (tabName === 'QuizTab') {
+                loadRandomQuiz();
+            }
+        }
+
+        // Initialize the app on load (show search tab)
+        document.addEventListener('DOMContentLoaded', () => {
+             // Set the initial state of the tabs
+             document.getElementById('SearchTab').style.display = 'block';
+             document.querySelector('.tab-button.active').className = 'tab-button active';
+             
+             // Preload the first quiz verb in the background
+             loadRandomQuiz();
         });
     </script>
 </body>
