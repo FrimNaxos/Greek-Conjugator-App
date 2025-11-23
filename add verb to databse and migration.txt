@@ -1,0 +1,10 @@
+Next Steps (Maintenance & Growth)
+Share the Link! Your live URL (https://greek-conjugator-app.onrender.com) is ready to be shared.
+
+Adding More Verbs: Remember the process for updating your content:
+
+Update your local CSV file.
+
+Run python db_builder.py (to update verbs.db).
+
+Run git add ., git commit, and git push origin master (to update the live site).
