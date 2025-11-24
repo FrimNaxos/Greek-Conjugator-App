@@ -18,7 +18,8 @@
             --table-row-even: #f7f7f7;
             --input-border: #ddd;
             --link-color: #007bff;
-            --favorite-color: #ffd700; /* Gold for star */
+            --favorite-color: #ffd700; 
+            --accent-green: #28a745; /* Green for pronunciation */
         }
 
         .dark-mode {
@@ -32,7 +33,8 @@
             --table-row-even: #1e1e1e;
             --input-border: #555;
             --link-color: #90bfff;
-            --favorite-color: #ffcc00; /* Slightly lighter gold for dark mode */
+            --favorite-color: #ffcc00; 
+            --accent-green: #38c14f; 
         }
 
         /* -------------------------------------- */
@@ -83,7 +85,7 @@
             color: var(--bg-primary);
         }
 
-        /* Verb Title & Favorite Button Styling */
+        /* Verb Title, Favorite, & Pronunciation Button Styling */
         #verb-title-container {
             display: flex;
             justify-content: center;
@@ -99,25 +101,34 @@
             font-size: 1.8em;
             font-weight: 600;
         }
-        #favorite-button {
+        
+        #favorite-button, #pronounce-button {
             font-size: 2em;
             background: none;
             border: none;
             cursor: pointer;
-            color: gray;
-            transition: color 0.2s, transform 0.2s;
             line-height: 1; 
             padding: 0;
             margin: 0;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        #favorite-button {
+            color: gray;
         }
         #favorite-button.is-favorite {
             color: var(--favorite-color);
         }
-        #favorite-button:hover {
+        #favorite-button:hover, #pronounce-button:hover {
             transform: scale(1.1);
         }
-
-        /* Tabs Navigation */
+        
+        #pronounce-button {
+            color: var(--accent-green);
+            font-size: 1.5em; /* Slightly smaller than star */
+        }
+        
+        /* Tabs Navigation (Remains same) */
         .tabs {
             display: flex;
             border-bottom: 2px solid var(--input-border);
@@ -144,121 +155,8 @@
         .tab-content.active {
             display: block;
         }
-
-        /* Search Bar Styling (Remains same) */
-        #search-controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        #search-form {
-            display: flex;
-            flex-grow: 1;
-            gap: 10px;
-        }
-        #search-input {
-            flex-grow: 1;
-            padding: 12px 15px;
-            border: 2px solid var(--input-border);
-            border-radius: 8px;
-            font-size: 17px;
-            background-color: var(--bg-primary);
-            color: var(--text-color);
-            transition: border-color 0.3s;
-        }
-        #search-input:focus {
-            border-color: var(--link-color);
-            outline: none;
-        }
-        #search-button, #random-button, #generate-sentence-button {
-            padding: 12px 20px;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 17px;
-            transition: background-color 0.3s;
-        }
-        #search-button {
-            background-color: #007bff; 
-        }
-        #random-button {
-            background-color: #28a745; 
-        }
-        #generate-sentence-button {
-            background-color: #ff8c00; 
-            flex-grow: 1; 
-            margin-top: 15px; 
-            width: 100%;
-        }
-        #random-button:hover {
-            background-color: #1e7e34;
-        }
-        #search-button:hover {
-            background-color: #0056b3;
-        }
-        #generate-sentence-button:hover {
-            background-color: #cc7000;
-        }
-
-
-        /* Table Styling (Remains same) */
-        #conjugation-table {
-            width: 100%;
-            border-collapse: separate; 
-            border-spacing: 0;
-            margin-top: 20px;
-            overflow: hidden; 
-        }
-        #conjugation-table th, #conjugation-table td {
-            padding: 12px 15px;
-            text-align: center;
-            border: 1px solid var(--input-border);
-            font-size: 0.95em;
-        }
-        #conjugation-table th {
-            background-color: var(--table-header-bg); 
-            color: var(--table-header-text);
-            font-weight: 600;
-            border-top: none;
-            border-bottom: 2px solid var(--table-header-bg);
-        }
-        .tense-header {
-            background-color: #3498db; 
-            color: white;
-            font-size: 1.1em;
-            font-weight: bold;
-        }
-        #conjugation-table tbody tr td:first-child {
-            text-align: left;
-            background-color: var(--table-row-even);
-            font-weight: bold;
-            color: var(--text-color);
-        }
-        #conjugation-table tbody tr:nth-child(even) {
-            background-color: var(--table-row-odd);
-        }
-        #conjugation-table tbody tr:hover {
-            background-color: #f0f8ff55; 
-            cursor: default;
-        }
-        .dark-mode #conjugation-table tbody tr:hover {
-             background-color: #007bff22; 
-        }
         
-        /* Message Styling */
-        .message {
-            padding: 15px;
-            background-color: #fff8e1; 
-            border: 1px solid #ffecb3; 
-            color: #6d4c41; 
-            border-radius: 8px;
-            text-align: center;
-            font-size: 1.1em;
-            margin-bottom: 20px;
-        }
-
-        /* Favorites List Styling */
+        /* Favorites List Styling (Remains same) */
         #favorites-list {
             list-style: none;
             padding: 0;
@@ -294,9 +192,32 @@
         .remove-favorite-button:hover {
             color: #a71d2a;
         }
-
-        /* (Other styles remain the same for brevity) */
-
+        
+        /* Missing Verb Splash Box (Remains same) */
+        .missing-verb-splash {
+            padding: 25px;
+            background-color: #ffe0b2; 
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #e65100;
+            margin-bottom: 20px;
+        }
+        .report-button {
+            padding: 10px 20px;
+            background-color: #e65100;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        .report-button:hover {
+            background-color: #bf360c;
+        }
     </style>
 </head>
 <body>
@@ -329,6 +250,7 @@
 
                 <div id="verb-title-container" style="display: none;">
                     <h2 id="verb-title"></h2>
+                    <button id="pronounce-button" onclick="pronounceVerb()" title="Pronounce Greek Verb">🔊</button> 
                     <button id="favorite-button" onclick="toggleFavorite()">☆</button>
                 </div>
 
@@ -382,13 +304,44 @@
 
     <script>
         // --- GLOBALS ---
-        let currentVerbData = null; // Stores the currently displayed verb's data
+        let currentVerbData = null; 
         let currentQuizVerb = null;
         let lastSearchTerm = '';
-        const FAVORITES_KEY = 'greekVerbFavorites'; // Key for localStorage
+        const FAVORITES_KEY = 'greekVerbFavorites'; 
 
-        // --- FAVORITE LOGIC ---
 
+        // --- NEW: AUDIO PRONUNCIATION LOGIC ---
+        function pronounceVerb() {
+            if (!currentVerbData || !currentVerbData.Greek_Verb) {
+                alert("No Greek verb is currently loaded for pronunciation.");
+                return;
+            }
+
+            // Check for Web Speech API support
+            if ('speechSynthesis' in window) {
+                const textToSpeak = currentVerbData.Greek_Verb.trim();
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                
+                // Set language to Modern Greek (el-GR)
+                utterance.lang = 'el-GR'; 
+                
+                // Optional: Find a Greek voice if available (improves quality)
+                const voices = speechSynthesis.getVoices();
+                const greekVoice = voices.find(voice => voice.lang === 'el-GR' || voice.lang === 'el');
+                if (greekVoice) {
+                    utterance.voice = greekVoice;
+                }
+                
+                // Slow down speech slightly for clarity
+                utterance.rate = 0.9; 
+
+                speechSynthesis.speak(utterance);
+            } else {
+                alert("Your browser does not support web speech synthesis. Try Chrome or Firefox.");
+            }
+        }
+        
+        // --- FAVORITE LOGIC (Remains same) ---
         function getFavorites() {
             try {
                 const favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY));
@@ -424,12 +377,10 @@
             const favoriteButton = document.getElementById('favorite-button');
             
             if (isFavorite(verbId)) {
-                // Remove from favorites
                 favorites = favorites.filter(v => v.ID !== verbId);
                 favoriteButton.classList.remove('is-favorite');
                 favoriteButton.textContent = '☆';
             } else {
-                // Add to favorites
                 favorites.push({ ID: verbId, Greek_Verb: verbGreek, English_Verb: verbEnglish });
                 favoriteButton.classList.add('is-favorite');
                 favoriteButton.textContent = '★';
@@ -443,7 +394,7 @@
             const favoritesList = document.getElementById('favorites-list');
             const favoritesMessage = document.getElementById('favorites-message');
             const favorites = getFavorites();
-            favoritesList.innerHTML = ''; // Clear existing list
+            favoritesList.innerHTML = ''; 
 
             if (favorites.length === 0) {
                 favoritesMessage.textContent = 'You have not saved any favorite verbs yet.';
@@ -457,29 +408,24 @@
                 const li = document.createElement('li');
                 li.className = 'favorite-item';
                 
-                // Name (clickable to search)
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'favorite-item-name';
                 nameSpan.textContent = `${verb.Greek_Verb} (${verb.English_Verb})`;
                 nameSpan.onclick = () => {
                     document.getElementById('search-input').value = verb.Greek_Verb;
-                    // Trigger a synthetic search form submission
                     document.getElementById('search-form').dispatchEvent(new Event('submit'));
-                    // Switch back to Search tab
                     openTab(null, 'SearchTab'); 
                 };
                 
-                // Remove button
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'remove-favorite-button';
                 removeBtn.textContent = '✖';
                 removeBtn.title = 'Remove from Favorites';
                 removeBtn.onclick = () => {
-                    // Temporarily set currentVerbData to the verb being removed to use toggleFavorite
                     currentVerbData = verb; 
                     toggleFavorite(); 
-                    currentVerbData = null; // Clear it afterward
-                    renderFavoritesList(); // Re-render the list immediately
+                    currentVerbData = null; 
+                    renderFavoritesList(); 
                 };
 
                 li.appendChild(nameSpan);
@@ -489,7 +435,7 @@
         }
 
 
-        // --- DARK MODE LOGIC ---
+        // --- DARK MODE LOGIC (Remains same) ---
         function setMode(isDark) {
             const body = document.body;
             const toggleButton = document.getElementById('mode-toggle-button');
@@ -510,7 +456,7 @@
             setMode(!isDark);
         }
         
-        // --- SUBMIT MISSING VERB ---
+        // --- SUBMIT MISSING VERB (Remains same) ---
         async function submitMissingVerb() {
             const button = document.getElementById('report-missing-button');
             const originalText = button.textContent;
@@ -544,17 +490,17 @@
         }
 
 
-        // --- CORE LOGIC (UPDATED for Favorites Display) ---
+        // --- CORE LOGIC (Updated to show/hide pronounce button) ---
         function displayConjugation(data, searchTerm) {
             const verbTitle = document.getElementById('verb-title');
             const titleContainer = document.getElementById('verb-title-container');
             const favoriteButton = document.getElementById('favorite-button');
+            const pronounceButton = document.getElementById('pronounce-button'); // NEW
             const tableBody = document.querySelector('#conjugation-table tbody');
             const conjugationTable = document.getElementById('conjugation-table');
             const messageArea = document.getElementById('message-area');
             const exampleSentence = document.getElementById('example-sentence');
             
-            // 1. Reset state
             currentVerbData = null;
             messageArea.innerHTML = '';
             tableBody.innerHTML = '';
@@ -564,6 +510,9 @@
             exampleSentence.textContent = ''; 
 
             if (!data.success) {
+                // If verb is not found, display the report button, but hide all result elements
+                pronounceButton.style.display = 'none'; // NEW
+                favoriteButton.style.display = 'none'; // NEW
                 if (data.verb_not_found) {
                     lastSearchTerm = searchTerm;
                     messageArea.innerHTML = `
@@ -582,13 +531,14 @@
                 return;
             }
 
-            // 2. Set new state
             currentVerbData = data.verb;
             const verbData = currentVerbData;
 
-            // 3. Update Title and Favorite button
+            // Show and set the title and buttons
             verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}`;
-            titleContainer.style.display = 'flex'; // Show title container
+            titleContainer.style.display = 'flex'; 
+            pronounceButton.style.display = 'block'; // NEW
+            favoriteButton.style.display = 'block'; // NEW
 
             if (isFavorite(verbData.ID)) {
                 favoriteButton.classList.add('is-favorite');
@@ -598,7 +548,7 @@
                 favoriteButton.textContent = '☆';
             }
 
-            // 4. Populate table
+            // Populate table (remaining table logic is the same)
             conjugationTable.style.display = 'table';
             
             if (verbData.Example_Sentence && verbData.Example_Sentence.trim()) {
@@ -639,8 +589,7 @@
         }
 
 
-        // --- EXISTING FEATURES (Search, Random, Quiz, Sentence) ---
-
+        // (Search, Random, Quiz functions remain the same)
         document.getElementById('search-form').addEventListener('submit', async function(e) {
             e.preventDefault(); 
             const searchTerm = document.getElementById('search-input').value;
@@ -675,7 +624,6 @@
             }
         });
 
-        // (Quiz functions remain the same)
         async function loadRandomQuiz() {
             document.getElementById('quiz-result-area').innerHTML = '';
             document.getElementById('quiz-input').value = '';
@@ -729,7 +677,6 @@
             if (evt) {
                 evt.currentTarget.className += " active";
             } else {
-                // Handle case where tab is opened programmatically
                 document.querySelector(`.tab-button[onclick*="'${tabName}'"]`).className += " active";
             }
 
@@ -737,13 +684,17 @@
             if (tabName === 'QuizTab') {
                 loadRandomQuiz();
             } else if (tabName === 'FavoritesTab') {
-                renderFavoritesList(); // Load favorites list every time the tab is opened
+                renderFavoritesList(); 
             }
         }
 
         // Initialize Dark Mode & App State
         document.addEventListener('DOMContentLoaded', () => {
-             // 1. Initialize Dark Mode preference
+             // We need to wait for voices to be loaded before trying to find a Greek voice
+             speechSynthesis.onvoiceschanged = function() {
+                 console.log("SpeechSynthesis voices loaded.");
+             };
+
              const savedTheme = localStorage.getItem('theme');
              if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                  setMode(true);
@@ -751,11 +702,10 @@
                  setMode(false);
              }
              
-             // 2. Initialize App State
              document.getElementById('SearchTab').style.display = 'block';
              document.querySelector('.tab-button[onclick*="' + 'SearchTab' + '"]').className += " active";
              loadRandomQuiz();
-             updateFavoritesCount(getFavorites().length); // Load initial favorite count
+             updateFavoritesCount(getFavorites().length); 
         });
     </script>
 </body>
