@@ -68,15 +68,22 @@
         }
         
         .container {
-            max-width: 950px;
-            margin: 50px auto;
-            /* Make container slightly transparent to show background */
-            background: rgba(255, 255, 255, 0.95); 
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.3s;
-        }
+    max-width: 950px;
+    margin: 50px auto;
+    /* Change the background to fully transparent */
+    background: transparent; 
+    
+    /* You might want to keep a slight shadow or border */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); 
+    padding: 40px;
+    border-radius: 12px;
+    transition: background-color 0.3s;
+}
+
+.dark-mode .container {
+    /* Also change the dark mode version to be transparent */
+    background: transparent; 
+}
         
         .dark-mode .container {
             background: rgba(30, 30, 30, 0.95); 
