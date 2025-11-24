@@ -4,33 +4,88 @@
     <meta charset="UTF-8">
     <title>Greek Verb Conjugator Lookup</title>
     <style>
-        /* Global Styles */
+        /* -------------------------------------- */
+        /* DARK MODE - CSS Variables */
+        /* -------------------------------------- */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f0f2f5;
+            --text-color: #333;
+            --heading-color: #004d99;
+            --table-header-bg: #004d99;
+            --table-header-text: white;
+            --table-row-odd: #fcfcfc;
+            --table-row-even: #f7f7f7;
+            --input-border: #ddd;
+            --link-color: #007bff;
+        }
+
+        .dark-mode {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #2c2c2c;
+            --text-color: #f0f0f0;
+            --heading-color: #79adff;
+            --table-header-bg: #444;
+            --table-header-text: #fff;
+            --table-row-odd: #282828;
+            --table-row-even: #1e1e1e;
+            --input-border: #555;
+            --link-color: #90bfff;
+        }
+
+        /* -------------------------------------- */
+        /* Global Styles (Using Variables) */
+        /* -------------------------------------- */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f0f2f5;
-            color: #333;
+            background-color: var(--bg-secondary);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
         }
         .container {
             max-width: 950px;
             margin: 50px auto;
-            background: #ffffff;
+            background: var(--bg-primary);
             padding: 40px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
         }
         h1 {
-            color: #004d99; /* Deep Blue */
+            color: var(--heading-color);
             text-align: center;
             margin-bottom: 25px;
             font-weight: 300;
         }
+        
+        /* Dark Mode Toggle Position */
+        #mode-toggle-container {
+            text-align: right;
+            margin-bottom: -40px; 
+            padding: 10px 0;
+        }
+        #mode-toggle-button {
+            background: none;
+            border: 1px solid var(--link-color);
+            color: var(--link-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        #mode-toggle-button:hover {
+            background-color: var(--link-color);
+            color: var(--bg-primary);
+        }
+
 
         /* Tabs Navigation */
         .tabs {
             display: flex;
-            border-bottom: 2px solid #ddd;
+            border-bottom: 2px solid var(--input-border);
             margin-bottom: 30px;
         }
         .tab-button {
@@ -40,12 +95,12 @@
             border: none;
             border-bottom: 2px solid transparent;
             font-size: 1.1em;
-            color: #555;
+            color: var(--text-color);
             transition: all 0.3s;
         }
         .tab-button.active {
-            color: #007bff;
-            border-bottom: 2px solid #007bff;
+            color: var(--link-color);
+            border-bottom: 2px solid var(--link-color);
             font-weight: 600;
         }
         .tab-content {
@@ -59,6 +114,7 @@
         #search-controls {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
         #search-form {
             display: flex;
@@ -68,18 +124,19 @@
         #search-input {
             flex-grow: 1;
             padding: 12px 15px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--input-border);
             border-radius: 8px;
             font-size: 17px;
+            background-color: var(--bg-primary);
+            color: var(--text-color);
             transition: border-color 0.3s;
         }
         #search-input:focus {
-            border-color: #007bff;
+            border-color: var(--link-color);
             outline: none;
         }
-        #search-button, #random-button {
+        #search-button, #random-button, #generate-sentence-button {
             padding: 12px 20px;
-            background-color: #007bff; 
             color: white;
             border: none;
             border-radius: 8px;
@@ -87,8 +144,17 @@
             font-size: 17px;
             transition: background-color 0.3s;
         }
+        #search-button {
+            background-color: #007bff; /* Fixed Blue */
+        }
         #random-button {
-            background-color: #28a745; /* Green for Random */
+            background-color: #28a745; /* Fixed Green */
+        }
+        #generate-sentence-button {
+            background-color: #ff8c00; /* Fixed Orange */
+            flex-grow: 1; 
+            margin-top: 15px; 
+            width: 100%;
         }
         #random-button:hover {
             background-color: #1e7e34;
@@ -96,15 +162,19 @@
         #search-button:hover {
             background-color: #0056b3;
         }
+        #generate-sentence-button:hover {
+            background-color: #cc7000;
+        }
+
 
         /* Verb Title */
         #verb-title {
             text-align: center;
-            color: #1a1a1a;
+            color: var(--text-color);
             font-size: 1.8em;
             margin-top: 20px;
             margin-bottom: 30px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--input-border);
             padding-bottom: 10px;
         }
 
@@ -119,34 +189,37 @@
         #conjugation-table th, #conjugation-table td {
             padding: 12px 15px;
             text-align: center;
-            border: 1px solid #e0e0e0;
+            border: 1px solid var(--input-border);
             font-size: 0.95em;
         }
         #conjugation-table th {
-            background-color: #004d99; 
-            color: white;
+            background-color: var(--table-header-bg); 
+            color: var(--table-header-text);
             font-weight: 600;
             border-top: none;
-            border-bottom: 2px solid #004d99;
+            border-bottom: 2px solid var(--table-header-bg);
         }
         .tense-header {
-            background-color: #3498db; 
+            background-color: #3498db; /* Fixed Light Blue */
             color: white;
             font-size: 1.1em;
             font-weight: bold;
         }
         #conjugation-table tbody tr td:first-child {
             text-align: left;
-            background-color: #f7f7f7;
+            background-color: var(--table-row-even);
             font-weight: bold;
-            color: #444;
+            color: var(--text-color);
         }
         #conjugation-table tbody tr:nth-child(even) {
-            background-color: #fcfcfc;
+            background-color: var(--table-row-odd);
         }
         #conjugation-table tbody tr:hover {
-            background-color: #f0f8ff; 
+            background-color: #f0f8ff55; 
             cursor: default;
+        }
+        .dark-mode #conjugation-table tbody tr:hover {
+             background-color: #007bff22; 
         }
         
         /* Message Styling */
@@ -161,13 +234,53 @@
             margin-bottom: 20px;
         }
         
+        /* Example Sentence Styling */
+        #example-sentence {
+            margin-top: 35px;
+            padding: 20px;
+            border: 1px solid #ff8c00;
+            border-left: 5px solid #ff8c00; 
+            border-radius: 4px;
+            background-color: #fff2e6; 
+            text-align: center;
+            font-size: 1.1em;
+            font-style: italic;
+            color: #cc7000;
+        }
+
+        /* Missing Verb Splash Box */
+        .missing-verb-splash {
+            padding: 25px;
+            background-color: #ffe0b2; 
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #e65100;
+            margin-bottom: 20px;
+        }
+        .report-button {
+            padding: 10px 20px;
+            background-color: #e65100;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        .report-button:hover {
+            background-color: #bf360c;
+        }
+        
         /* Quiz Styles */
         #quiz-verb {
             font-size: 2em;
             font-weight: bold;
             text-align: center;
             margin-bottom: 20px;
-            color: #004d99;
+            color: var(--heading-color);
         }
         #quiz-check-form {
             display: flex;
@@ -177,13 +290,15 @@
         #quiz-input {
             flex-grow: 1;
             padding: 12px 15px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--input-border);
             border-radius: 8px;
             font-size: 17px;
+            background-color: var(--bg-primary);
+            color: var(--text-color);
         }
         #quiz-check-button {
             padding: 12px 25px;
-            background-color: #ffc107; /* Yellow */
+            background-color: #ffc107;
             color: #333;
             border: none;
             border-radius: 8px;
@@ -210,6 +325,10 @@
 </head>
 <body>
     <div class="container">
+        <div id="mode-toggle-container">
+            <button id="mode-toggle-button" onclick="toggleDarkMode()">Switch to Dark Mode</button>
+        </div>
+        
         <h1>Greek Verb Conjugator</h1>
         
         <div class="tabs">
@@ -225,6 +344,7 @@
                     <button type="submit" id="search-button">Search</button>
                 </form>
                 <button id="random-button">Random Verb</button>
+                <button id="generate-sentence-button">Generate Simple Sentence</button>
             </div>
 
             <div id="results-container">
@@ -248,6 +368,7 @@
                     <tbody>
                         </tbody>
                 </table>
+                <div id="example-sentence" style="display: none;"></div>
             </div>
         </div>
 
@@ -273,27 +394,105 @@
     <script>
         // --- GLOBALS ---
         let currentQuizVerb = null;
+        let lastSearchTerm = ''; 
+        
+        // --- NEW: DARK MODE LOGIC ---
+        function setMode(isDark) {
+            const body = document.body;
+            const toggleButton = document.getElementById('mode-toggle-button');
+            
+            if (isDark) {
+                body.classList.add('dark-mode');
+                toggleButton.textContent = 'Switch to Light Mode ☀️';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark-mode');
+                toggleButton.textContent = 'Switch to Dark Mode 🌙';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        function toggleDarkMode() {
+            const isDark = document.body.classList.contains('dark-mode');
+            setMode(!isDark);
+        }
+        
+        // --- NEW: SUBMIT MISSING VERB ---
+        async function submitMissingVerb() {
+            const button = document.getElementById('report-missing-button');
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Sending...';
 
-        // --- CORE LOGIC (Reuse for Search and Random) ---
-        function displayConjugation(data) {
+            try {
+                const response = await fetch('/report_missing_verb', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ verb: lastSearchTerm })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    button.textContent = '✅ Sent!';
+                    setTimeout(() => {
+                        document.getElementById('message-area').innerHTML = '';
+                    }, 3000);
+                } else {
+                    alert('Failed to send report. Please try again later.');
+                    button.textContent = 'Try Again';
+                    button.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error reporting verb:', error);
+                alert('A network error occurred.');
+                button.textContent = 'Try Again';
+                button.disabled = false;
+            }
+        }
+
+
+        // --- CORE LOGIC ---
+        function displayConjugation(data, searchTerm) {
             const verbTitle = document.getElementById('verb-title');
             const tableBody = document.querySelector('#conjugation-table tbody');
             const conjugationTable = document.getElementById('conjugation-table');
             const messageArea = document.getElementById('message-area');
+            const exampleSentence = document.getElementById('example-sentence');
 
             messageArea.innerHTML = '';
             tableBody.innerHTML = '';
             verbTitle.textContent = '';
             conjugationTable.style.display = 'none';
+            exampleSentence.style.display = 'none'; 
+            exampleSentence.textContent = ''; 
 
             if (!data.success) {
-                messageArea.innerHTML = `<div class="message">${data.message}</div>`;
+                if (data.verb_not_found) {
+                    lastSearchTerm = searchTerm;
+                    messageArea.innerHTML = `
+                        <div class="missing-verb-splash">
+                            <p>The verb <strong>"${searchTerm}"</strong> is not listed yet.</p>
+                            <p>It can be added! Send the request now:</p>
+                            <button class="report-button" id="report-missing-button" onclick="submitMissingVerb()">
+                                Send to Administrator
+                            </button>
+                            <p style="font-size:0.9em; margin-top: 15px;">Come back soon!</p>
+                        </div>
+                    `;
+                } else {
+                    messageArea.innerHTML = `<div class="message">${data.message}</div>`;
+                }
                 return;
             }
 
             const verbData = data.verb;
             verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}`;
             conjugationTable.style.display = 'table';
+            
+            if (verbData.Example_Sentence && verbData.Example_Sentence.trim()) {
+                exampleSentence.textContent = `Manual Example: ${verbData.Example_Sentence.trim()}`;
+                exampleSentence.style.display = 'block';
+            }
             
             const persons = [
                 { label: 'Εγώ', description: '(I)', person: 'Ego' },
@@ -307,21 +506,14 @@
             persons.forEach(p => {
                 const tr = document.createElement('tr');
                 
-                // 1. Person Label (with separated Greek/English)
                 const tdLabel = document.createElement('td');
                 tdLabel.innerHTML = `<strong>${p.label}</strong> <span style="font-size:0.8em; color:#777;">${p.description}</span>`;
                 tr.appendChild(tdLabel);
                 
-                // 2. Present Tense (Using .trim() to clean up whitespace from CSV)
                 tr.insertCell().textContent = verbData[`Present_${p.person}`] ? verbData[`Present_${p.person}`].trim() : '-';
-
-                // 3. Aorist Tense
                 tr.insertCell().textContent = verbData[`Aorist_${p.person}`] ? verbData[`Aorist_${p.person}`].trim() : '-';
-                
-                // 4. Future Tense
                 tr.insertCell().textContent = verbData[`Future_${p.person}`] ? verbData[`Future_${p.person}`].trim() : '-';
                 
-                // 5. & 6. IMPERATIVE
                 if (p.person === 'Esy' || p.person === 'YouPl') {
                     tr.insertCell().textContent = verbData[`Present_Imperative_${p.person}`] ? verbData[`Present_Imperative_${p.person}`].trim() : '-';
                     tr.insertCell().textContent = verbData[`Aorist_Imperative_${p.person}`] ? verbData[`Aorist_Imperative_${p.person}`].trim() : '-';
@@ -335,7 +527,8 @@
         }
 
 
-        // --- FEATURE 1: DUAL SEARCH ---
+        // --- EXISTING FEATURES (Search, Random, Quiz, Sentence) ---
+
         document.getElementById('search-form').addEventListener('submit', async function(e) {
             e.preventDefault(); 
             const searchTerm = document.getElementById('search-input').value;
@@ -346,21 +539,31 @@
 
             const response = await fetch(`/search?term=${encodeURIComponent(searchTerm)}`);
             const data = await response.json();
-            displayConjugation(data);
+            displayConjugation(data, searchTerm); 
         });
 
-        // --- FEATURE 2: RANDOM VERB BUTTON ---
         document.getElementById('random-button').addEventListener('click', async function() {
             const response = await fetch('/random_verb');
             const data = await response.json();
-            displayConjugation(data);
-            document.getElementById('search-input').value = ''; // Clear search box
+            displayConjugation(data, ''); 
         });
 
+        document.getElementById('generate-sentence-button').addEventListener('click', async function() {
+            const exampleSentence = document.getElementById('example-sentence');
+            const response = await fetch('/generate_sentence');
+            const data = await response.json();
 
-        // --- FEATURE 3: QUIZ FUNCTION ---
+            if (data.success) {
+                exampleSentence.textContent = `Generated Sentence (Verb: ${data.verb || 'Unknown'}): ${data.sentence}`;
+                exampleSentence.style.display = 'block';
+                document.getElementById('message-area').innerHTML = '';
+            } else {
+                exampleSentence.textContent = `Error: ${data.sentence}`;
+                exampleSentence.style.display = 'block';
+            }
+        });
+
         async function loadRandomQuiz() {
-            // Reset quiz state
             document.getElementById('quiz-result-area').innerHTML = '';
             document.getElementById('quiz-input').value = '';
             document.getElementById('quiz-check-button').style.display = 'block';
@@ -371,7 +574,6 @@
 
             if (data.success) {
                 currentQuizVerb = data.verb;
-                // Display the Greek Verb (Infinitive) to be translated
                 document.getElementById('quiz-verb').textContent = currentQuizVerb.Greek_Verb;
             } else {
                 document.getElementById('quiz-verb').textContent = "Error loading verb.";
@@ -387,10 +589,7 @@
 
             if (!userAnswer || !currentQuizVerb) return;
 
-            // Normalize the correct answer (remove "to " and trim)
             const correctAnswer = currentQuizVerb.Translation.trim().toLowerCase().replace(/^to\s/, '');
-            
-            // Normalize user answer
             const normalizedUserAnswer = userAnswer.replace(/^to\s/, '');
 
             checkButton.style.display = 'none';
@@ -403,7 +602,6 @@
             }
         });
         
-        // --- TAB SWITCHING LOGIC ---
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
@@ -417,19 +615,25 @@
             document.getElementById(tabName).style.display = "block";
             evt.currentTarget.className += " active";
 
-            // If switching to the Quiz tab, load the first quiz verb
             if (tabName === 'QuizTab') {
                 loadRandomQuiz();
             }
         }
 
-        // Initialize the app on load (show search tab)
+        // Initialize Dark Mode based on preference
         document.addEventListener('DOMContentLoaded', () => {
-             // Set the initial state of the tabs
+             // 1. Initialize Dark Mode preference
+             const savedTheme = localStorage.getItem('theme');
+             // Default to dark if user prefers it on system, or if 'dark' is saved
+             if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                 setMode(true);
+             } else {
+                 setMode(false);
+             }
+             
+             // 2. Initialize Tab State
              document.getElementById('SearchTab').style.display = 'block';
              document.querySelector('.tab-button.active').className = 'tab-button active';
-             
-             // Preload the first quiz verb in the background
              loadRandomQuiz();
         });
     </script>
