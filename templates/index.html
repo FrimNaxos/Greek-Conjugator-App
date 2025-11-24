@@ -5,7 +5,7 @@
     <title>Greek Verb Conjugator Lookup</title>
     <style>
         /* -------------------------------------- */
-        /* DARK MODE - CSS Variables */
+        /* CSS Variables for Dark Mode */
         /* -------------------------------------- */
         :root {
             --bg-primary: #ffffff;
@@ -20,6 +20,7 @@
             --link-color: #007bff;
             --favorite-color: #ffd700; 
             --accent-green: #28a745; 
+            --dark-blue-text: #001f4d; /* New Dark Blue Text Variable */
         }
 
         .dark-mode {
@@ -34,7 +35,8 @@
             --input-border: #555;
             --link-color: #90bfff;
             --favorite-color: #ffcc00; 
-            --accent-green: #38c14f; 
+            --accent-green: #38c14f;
+            --dark-blue-text: #e0e0e0; /* Light text in dark mode */
         }
 
         /* -------------------------------------- */
@@ -44,19 +46,42 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: var(--bg-secondary);
             color: var(--text-color);
             transition: background-color 0.3s, color 0.3s;
+            
+            /* --- NEW GREEK FLAG BACKGROUND --- */
+            background-image: url('greek_flag.png'); 
+            background-size: cover;          
+            background-attachment: fixed;    
+            background-position: center;     
+            background-repeat: no-repeat;
+            
+            /* Apply 50% opacity/transparency using a semi-transparent layer */
+            background-color: rgba(255, 255, 255, 0.5); 
+            background-blend-mode: overlay;  
         }
+        
+        /* Dark Mode adjustment for background */
+        .dark-mode body {
+            background-color: rgba(0, 0, 0, 0.5); 
+            background-blend-mode: overlay;
+        }
+        
         .container {
             max-width: 950px;
             margin: 50px auto;
-            background: var(--bg-primary);
+            /* Make container slightly transparent to show background */
+            background: rgba(255, 255, 255, 0.95); 
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             transition: background-color 0.3s;
         }
+        
+        .dark-mode .container {
+            background: rgba(30, 30, 30, 0.95); 
+        }
+        
         h1 {
             color: var(--heading-color);
             text-align: center;
@@ -71,6 +96,7 @@
             padding: 10px 0;
         }
         #mode-toggle-button {
+            /* Inherits 3D style from the button selector below */
             background: none;
             border: 1px solid var(--link-color);
             color: var(--link-color);
@@ -78,11 +104,53 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 0.9em;
-            transition: background-color 0.3s, color 0.3s;
+            transition: all 0.3s;
         }
         #mode-toggle-button:hover {
             background-color: var(--link-color);
             color: var(--bg-primary);
+        }
+        
+        /* -------------------------------------- */
+        /* NEW 3D BUTTON STYLING */
+        /* -------------------------------------- */
+        button, #search-button, #random-button, #generate-sentence-button, 
+        #quiz-check-button, #next-quiz-button, #mode-toggle-button {
+            /* 3D shadow effect */
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4); 
+            
+            /* Dark Blue Bold Text */
+            color: var(--dark-blue-text) !important; 
+            font-weight: bold;
+            text-shadow: 0.5px 0.5px 0.5px rgba(255, 255, 255, 0.5); 
+            
+            /* General Button Styling */
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--dark-blue-text);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.2s;
+            line-height: 1; /* Ensure text alignment is good */
+        }
+        
+        button:hover, #search-button:hover, #random-button:hover {
+            transform: translateY(-1px); /* Slight lift on hover for 3D feel */
+            box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            background-color: #e0e0e0;
+        }
+        
+        /* Input Field Styling */
+        input[type="text"] {
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border: 2px solid var(--input-border);
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: var(--bg-primary);
+            color: var(--text-color);
+            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         /* Verb Title, Favorite, & Pronunciation Button Styling */
@@ -111,6 +179,7 @@
             padding: 0;
             margin: 0;
             transition: color 0.2s, transform 0.2s;
+            box-shadow: none; /* Override 3D shadow for these specific icons */
         }
 
         #favorite-button {
@@ -145,29 +214,18 @@
             color: var(--text-color);
             transition: all 0.3s;
             white-space: nowrap; 
+            box-shadow: none; /* Override 3D shadow for tabs */
+            font-weight: normal !important;
         }
         .tab-button.active {
             color: var(--link-color);
             border-bottom: 2px solid var(--link-color);
             font-weight: 600;
         }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
         
         /* List View Filtering/Navigation */
         #verb-list-search {
             width: 100%;
-            padding: 10px 15px;
-            margin-bottom: 20px;
-            border: 2px solid var(--input-border);
-            border-radius: 8px;
-            font-size: 16px;
-            background-color: var(--bg-primary);
-            color: var(--text-color);
         }
         #all-verbs-list {
             list-style: none;
@@ -191,27 +249,6 @@
             background-color: var(--link-color);
             color: white;
         }
-        .verb-list-item:last-child {
-            border-bottom: none;
-        }
-        .verb-greek {
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        .verb-english {
-            font-size: 0.9em;
-            color: #666; 
-        }
-        .verb-list-item:hover .verb-english {
-            color: #eee; 
-        }
-        .dark-mode .verb-english {
-            color: #ccc;
-        }
-        .dark-mode .verb-list-item:hover .verb-english {
-            color: #fff;
-        }
-
         /* Table Styling */
         #conjugation-table {
             width: 100%;
@@ -258,65 +295,19 @@
             background-color: rgba(0, 123, 255, 0.1); 
         }
 
-        .message {
-            padding: 15px;
-            background-color: #fff8e1; 
-            border: 1px solid #ffecb3; 
-            color: #6d4c41; 
+        .message, .missing-verb-splash {
+            /* General message styling */
             border-radius: 8px;
             text-align: center;
-            font-size: 1.1em;
-            margin-bottom: 20px;
-        }
-        .missing-verb-splash {
-            padding: 25px;
-            background-color: #ffe0b2; 
-            border: 2px solid #ff9800;
-            border-radius: 10px;
-            text-align: center;
-            font-size: 1.2em;
-            color: #e65100;
-            margin-bottom: 20px;
-        }
-        .report-button {
-            padding: 10px 20px;
-            background-color: #e65100;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 10px;
-            font-size: 1em;
-            transition: background-color 0.3s;
-        }
-        .report-button:hover {
-            background-color: #bf360c;
-        }
-        
-        /* Quiz Styles */
-        #quiz-verb {
-            font-size: 2em;
-            font-weight: bold;
-            color: var(--heading-color);
-            text-align: center;
             margin-bottom: 20px;
         }
         
-        #quiz-result-area .correct {
-            color: green;
-            font-weight: bold;
-        }
-        #quiz-result-area .incorrect {
-            color: red;
-            font-weight: bold;
-        }
-
     </style>
 </head>
 <body>
     <div class="container">
         <div id="mode-toggle-container">
-            <button id="mode-toggle-button" onclick="toggleDarkMode()">Switch to Dark Mode</button>
+            <button id="mode-toggle-button" onclick="toggleDarkMode()">Switch to Dark Mode 🌙</button>
         </div>
         
         <h1>Greek Verb Conjugator</h1>
@@ -335,8 +326,10 @@
                     <input type="text" id="search-input" placeholder="Enter English or Greek verb (e.g., 'eat' or 'τρώω')" autofocus>
                     <button type="submit" id="search-button">Search</button>
                 </form>
-                <button id="random-button">Random Verb</button>
-                <button id="generate-sentence-button">Generate Simple Sentence</button>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button id="random-button">Random Verb</button>
+                    <button id="generate-sentence-button">Generate Simple Sentence</button>
+                </div>
             </div>
 
             <div id="results-container">
@@ -366,7 +359,7 @@
                     <tbody>
                         </tbody>
                 </table>
-                <div id="example-sentence" style="display: none;"></div>
+                <div id="example-sentence" style="display: none; padding: 15px; background-color: var(--bg-secondary); border-radius: 8px; margin-top: 20px;"></div>
             </div>
         </div>
         
@@ -382,7 +375,7 @@
 
         <div id="QuizTab" class="tab-content">
             <h2>Verb Translation Quiz</h2>
-            <p class="message">Translate the Greek verb below into English.</p>
+            <p class="message" style="background-color: #fff8e1; border: 1px solid #ffecb3; color: #6d4c41; padding: 10px;">Translate the Greek verb below into English.</p>
             
             <div id="quiz-area">
                 <div id="quiz-verb">Loading...</div>
@@ -393,14 +386,14 @@
                 </form>
 
                 <div id="quiz-result-area"></div>
-                <button id="next-quiz-button" style="display: none; padding: 10px; margin-top: 10px;" onclick="loadRandomQuiz()">Next Verb</button>
+                <button id="next-quiz-button" style="display: none; margin-top: 10px;" onclick="loadRandomQuiz()">Next Verb</button>
             </div>
         </div>
         
         <div id="FavoritesTab" class="tab-content">
             <h2>Your Favorite Verbs</h2>
-            <p id="favorites-message" class="message">Your saved verbs will appear here.</p>
-            <ul id="favorites-list">
+            <p id="favorites-message" class="message" style="background-color: #f0f0f0; border: 1px solid #ddd; color: #333; padding: 10px;">Your saved verbs will appear here.</p>
+            <ul id="favorites-list" style="list-style: none; padding: 0;">
                 </ul>
         </div>
 
@@ -415,14 +408,13 @@
         let allVerbsCache = []; 
 
 
-        // --- GENERIC AUDIO PRONUNCIATION LOGIC (NEW) ---
+        // --- GENERIC AUDIO PRONUNCIATION LOGIC ---
         function pronounceText(text) {
-            if (!text || text.trim() === '-' || text.trim() === '') return; // Don't pronounce dashes or empty strings
+            if (!text || text.trim() === '-' || text.trim() === '') return;
 
             if ('speechSynthesis' in window) {
                 const textToSpeak = text.trim();
                 
-                // Stop any current speech
                 if (speechSynthesis.speaking) {
                     speechSynthesis.cancel();
                 }
@@ -440,7 +432,7 @@
 
                 speechSynthesis.speak(utterance);
             } else {
-                alert("Your browser does not support web speech synthesis.");
+                console.warn("Speech synthesis not supported.");
             }
         }
 
@@ -450,7 +442,7 @@
             const verbTitle = document.getElementById('verb-title');
             const titleContainer = document.getElementById('verb-title-container');
             const favoriteButton = document.getElementById('favorite-button');
-            const pronounceButton = document.getElementById('pronounce-infinitive-button'); // Renamed
+            const pronounceButton = document.getElementById('pronounce-infinitive-button');
             const tableBody = document.querySelector('#conjugation-table tbody');
             const conjugationTable = document.getElementById('conjugation-table');
             const messageArea = document.getElementById('message-area');
@@ -471,17 +463,17 @@
                 if (data.verb_not_found) {
                     lastSearchTerm = searchTerm;
                     messageArea.innerHTML = `
-                        <div class="missing-verb-splash">
+                        <div class="missing-verb-splash" style="background-color: #ffe0b2; border: 2px solid #ff9800; padding: 25px; color: #e65100;">
                             <p>The verb <strong>"${searchTerm}"</strong> is not listed yet.</p>
                             <p>It can be added! Send the request now:</p>
-                            <button class="report-button" id="report-missing-button" onclick="submitMissingVerb()">
+                            <button class="report-button" id="report-missing-button" onclick="submitMissingVerb()" style="background-color: #e65100; color: white; border: none;">
                                 Send to Administrator
                             </button>
                             <p style="font-size:0.9em; margin-top: 15px;">Come back soon!</p>
                         </div>
                     `;
                 } else {
-                    messageArea.innerHTML = `<div class="message">${data.message}</div>`;
+                    messageArea.innerHTML = `<div class="message" style="background-color: #fff8e1; border: 1px solid #ffecb3; color: #6d4c41; padding: 15px;">${data.message}</div>`;
                 }
                 return;
             }
@@ -528,12 +520,11 @@
                 tdLabel.innerHTML = `<strong>${p.label}</strong> <span style="font-size:0.8em; color:#777;">${p.description}</span>`;
                 tr.appendChild(tdLabel);
                 
-                // We add an event listener to the cell element in the next step
                 function createClickableCell(value) {
                     const td = document.createElement('td');
                     td.textContent = value.trim() || '-';
                     if (td.textContent !== '-') {
-                        td.onclick = (e) => pronounceText(e.target.textContent); // NEW: Pronounce on click
+                        td.onclick = (e) => pronounceText(e.target.textContent);
                     }
                     return td;
                 }
@@ -560,7 +551,7 @@
             e.preventDefault(); 
             const searchTerm = document.getElementById('search-input').value;
             if (!searchTerm.trim()) {
-                document.getElementById('message-area').innerHTML = '<div class="message">Please enter a verb to search.</div>';
+                document.getElementById('message-area').innerHTML = '<div class="message" style="background-color: #fff8e1; border: 1px solid #ffecb3; color: #6d4c41; padding: 15px;">Please enter a verb to search.</div>';
                 return;
             }
 
@@ -595,9 +586,8 @@
         async function loadAllVerbs() {
             const listElement = document.getElementById('all-verbs-list');
             
-            // 1. Load from cache or fetch if empty
             if (allVerbsCache.length === 0) {
-                 listElement.innerHTML = '<li class="verb-list-item" style="justify-content: center;">Loading verb list...</li>';
+                 listElement.innerHTML = '<li class="verb-list-item" style="justify-content: center; color: var(--text-color);">Loading verb list...</li>';
                 try {
                     const response = await fetch('/all_verbs');
                     const data = await response.json();
@@ -606,7 +596,6 @@
                         allVerbsCache = data.verbs;
                         renderAllVerbs();
                     } else {
-                        // NEW: Show message if no verbs are loaded (or if cache is empty after initial load)
                         listElement.innerHTML = `<li class="verb-list-item" style="color: var(--text-color); justify-content: center;">No verbs loaded. Try searching above.</li>`;
                     }
                 } catch (error) {
@@ -622,14 +611,13 @@
             listElement.innerHTML = '';
             const normalizedFilter = filterTerm.trim().toLowerCase();
 
-            // NEW: Only render a list if the filter is active OR if the cache is full and we want to display all.
             if (allVerbsCache.length === 0 && normalizedFilter === '') {
                  listElement.innerHTML = `<li class="verb-list-item" style="color: var(--text-color); justify-content: center;">Enter a term above to filter the verb list.</li>`;
                  return;
             }
 
             const filteredVerbs = allVerbsCache.filter(verb => {
-                if (normalizedFilter === '') return true; // Show all if filter is empty and cache is full
+                if (normalizedFilter === '') return true;
                 
                 return verb.Greek_Verb.toLowerCase().includes(normalizedFilter) || 
                        verb.English_Verb.toLowerCase().includes(normalizedFilter) || 
@@ -641,15 +629,6 @@
                  return;
             }
             
-            // If filter is empty, only show the message unless the user hits "All Verbs" explicitly
-            if (normalizedFilter === '' && allVerbsCache.length > 0) {
-                // To avoid overwhelming the user, only render the filtered list for non-empty filters
-                // If you want to show ALL verbs by default, remove the next block. 
-                // Since the user reported nan (nan), we'll keep it searchable-only by default.
-                // However, since we are in the AllVerbsTab, we should show all verbs.
-            }
-
-
             filteredVerbs.forEach(verb => {
                 const li = document.createElement('li');
                 li.className = 'verb-list-item';
@@ -674,13 +653,12 @@
         }
 
         
-        // --- FAVORITE LOGIC (No changes needed) ---
+        // --- FAVORITE LOGIC ---
         function getFavorites() {
             try {
                 const favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY));
                 return Array.isArray(favorites) ? favorites : [];
             } catch (e) {
-                console.error("Error reading favorites from localStorage", e);
                 return [];
             }
         }
@@ -739,7 +717,7 @@
 
             favorites.forEach(verb => {
                 const li = document.createElement('li');
-                li.className = 'favorite-item';
+                li.className = 'verb-list-item';
                 
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'favorite-item-name';
@@ -755,11 +733,19 @@
                 removeBtn.textContent = '✖';
                 removeBtn.title = 'Remove from Favorites';
                 removeBtn.onclick = () => {
+                    // Temporarily set currentVerbData to the favorite item for toggling
                     currentVerbData = verb; 
                     toggleFavorite(); 
                     currentVerbData = null; 
                     renderFavoritesList(); 
                 };
+                
+                // Style for favorite list item buttons (to override global 3D button)
+                removeBtn.style.boxShadow = 'none';
+                removeBtn.style.backgroundColor = 'transparent';
+                removeBtn.style.color = 'red';
+                removeBtn.style.border = 'none';
+
 
                 li.appendChild(nameSpan);
                 li.appendChild(removeBtn);
@@ -767,7 +753,7 @@
             });
         }
 
-        // --- DARK MODE LOGIC (No changes needed) ---
+        // --- DARK MODE LOGIC ---
         function setMode(isDark) {
             const body = document.body;
             const toggleButton = document.getElementById('mode-toggle-button');
@@ -788,13 +774,13 @@
             setMode(!isDark);
         }
         
-        // --- QUIZ LOGIC (Modified initial load) ---
+        // --- QUIZ LOGIC ---
         async function loadRandomQuiz() {
             document.getElementById('quiz-result-area').innerHTML = '';
             document.getElementById('quiz-input').value = '';
             document.getElementById('quiz-check-button').style.display = 'block';
             document.getElementById('next-quiz-button').style.display = 'none';
-            document.getElementById('quiz-verb').textContent = "Loading..."; // NEW: Set loading state
+            document.getElementById('quiz-verb').textContent = "Loading...";
 
             const response = await fetch('/random_verb');
             const data = await response.json();
@@ -815,7 +801,7 @@
             const nextButton = document.getElementById('next-quiz-button');
 
             if (!userAnswer || !currentQuizVerb) {
-                resultArea.innerHTML = `<div class="quiz-result incorrect">Please load a verb and enter an answer.</div>`;
+                resultArea.innerHTML = `<div class="quiz-result incorrect" style="color: red; font-weight: bold;">Please load a verb and enter an answer.</div>`;
                 return;
             }
 
@@ -826,13 +812,13 @@
             nextButton.style.display = 'block';
 
             if (normalizedUserAnswer === correctAnswer) {
-                resultArea.innerHTML = `<div class="quiz-result correct">✅ Correct! The translation is "${currentQuizVerb.Translation}".</div>`;
+                resultArea.innerHTML = `<div class="quiz-result correct" style="color: green; font-weight: bold;">✅ Correct! The translation is "${currentQuizVerb.Translation}".</div>`;
             } else {
-                resultArea.innerHTML = `<div class="quiz-result incorrect">❌ Incorrect. The correct translation is "${currentQuizVerb.Translation}".</div>`;
+                resultArea.innerHTML = `<div class="quiz-result incorrect" style="color: red; font-weight: bold;">❌ Incorrect. The correct translation is "${currentQuizVerb.Translation}".</div>`;
             }
         });
 
-        // --- TAB CONTROL (No changes needed) ---
+        // --- TAB CONTROL ---
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
@@ -861,7 +847,7 @@
         }
 
 
-        // --- SUBMIT MISSING VERB (No changes needed) ---
+        // --- SUBMIT MISSING VERB ---
         async function submitMissingVerb() {
             const button = document.getElementById('report-missing-button');
             button.disabled = true;
@@ -896,7 +882,6 @@
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
-             // Wait for voices to load before setting up TTS
              speechSynthesis.onvoiceschanged = function() {
                  console.log("SpeechSynthesis voices loaded.");
              };
@@ -912,8 +897,6 @@
              // 2. Set default tab and load initial data
              document.getElementById('SearchTab').style.display = 'block';
              document.querySelector('.tab-button[onclick*="' + 'SearchTab' + '"]').className += " active";
-             // NOTE: We don't call loadRandomQuiz() here to prevent the initial NAN. 
-             // It will be called when the user clicks the Quiz tab.
              updateFavoritesCount(getFavorites().length); 
         });
     </script>

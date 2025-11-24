@@ -2,11 +2,12 @@ import pandas as pd
 import sqlite3
 import os
 import random
-import numpy as np # Added numpy for reliable NaN representation
+import numpy as np 
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 # IMPORTANT: Ensure this matches your exact CSV filename!
+# Based on our conversation, we'll use a placeholder name assuming you've pushed your file.
 CSV_FILE = 'greek verb conjugation table v2.csv' 
 DATABASE = 'verbs.db'
 
@@ -21,6 +22,7 @@ def get_db_connection():
 
 def initialize_database():
     """Creates the database and populates it from the CSV file if it doesn't exist."""
+    # We check if the database file is small, which suggests it might be empty or corrupted.
     if not os.path.exists(DATABASE) or os.path.getsize(DATABASE) < 100: 
         print(f"Database '{DATABASE}' not found or is corrupted. Initializing...")
         try:
@@ -30,7 +32,7 @@ def initialize_database():
             except UnicodeDecodeError:
                 df = pd.read_csv(CSV_FILE, encoding='iso-8859-1')
             
-            # --- CRITICAL CLEANING STEPS (REVISED FOR ROBUSTNESS) ---
+            # --- CRITICAL CLEANING STEPS (ROBUST) ---
             
             # 1. Replace empty strings/whitespace in the whole DataFrame with NumPy's NaN
             # This ensures pandas recognizes them as missing data.
@@ -38,7 +40,6 @@ def initialize_database():
             
             # 2. Strip whitespace from all string columns (only affects valid data now)
             for col in df.select_dtypes(['object']).columns:
-                # Need to convert to string first, but ignore true NaNs
                 df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
             
             # 3. DROP rows where any essential display field is missing (fixes the 'nan (nan)' issue)
@@ -56,7 +57,7 @@ def initialize_database():
             conn.close()
             print(f"Database initialized successfully with {len(df_cleaned)} clean records.")
         except FileNotFoundError:
-            print(f"ERROR: The file '{CSV_FILE}' was not found. Please check the filename in app.py.")
+            print(f"ERROR: The file '{CSV_FILE}' was not found. Please check the filename in app.py and ensure it is pushed to Render.")
         except Exception as e:
             print(f"Error during database initialization: {e}")
     else:
@@ -65,7 +66,7 @@ def initialize_database():
 # Ensure database is initialized on startup
 initialize_database()
 
-# --- Flask Routes (No changes here) ---
+# --- Flask Routes ---
 
 @app.route('/')
 def index():
@@ -75,6 +76,7 @@ def index():
 def all_verbs():
     conn = get_db_connection()
     try:
+        # Fetching only the clean, critical columns
         verbs_cursor = conn.execute('SELECT ID, Greek_Verb, English_Verb, Translation FROM verbs ORDER BY Greek_Verb ASC').fetchall()
         
         verbs_list = [{
@@ -120,7 +122,8 @@ def search_verb():
 def random_verb():
     conn = get_db_connection()
     try:
-        verb_row = conn.execute('SELECT * FROM verbs ORDER BY RANDOM() LIMIT 1').fetchone()
+        # Selects a random verb where the Greek verb is not an empty string (extra safety)
+        verb_row = conn.execute("SELECT * FROM verbs WHERE Greek_Verb IS NOT '' ORDER BY RANDOM() LIMIT 1").fetchone()
         
         if verb_row:
             return jsonify({'success': True, 'verb': dict(verb_row)})
