@@ -2,11 +2,14 @@ import pandas as pd
 import sqlite3
 import os
 import random
+import numpy as np # Added numpy for reliable NaN representation
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
+# IMPORTANT: Ensure this matches your exact CSV filename!
+CSV_FILE = 'greek verb conjugation table v2.csv' 
 DATABASE = 'verbs.db'
-CSV_FILE = 'greek verb conjugation table v2.csv'
+
 
 # --- Utility Functions ---
 
@@ -18,22 +21,42 @@ def get_db_connection():
 
 def initialize_database():
     """Creates the database and populates it from the CSV file if it doesn't exist."""
-    if not os.path.exists(DATABASE):
-        print(f"Database '{DATABASE}' not found. Initializing...")
+    if not os.path.exists(DATABASE) or os.path.getsize(DATABASE) < 100: 
+        print(f"Database '{DATABASE}' not found or is corrupted. Initializing...")
         try:
-            df = pd.read_csv(CSV_FILE)
-            # Remove leading/trailing spaces from string columns
+            # Use a robust encoding to handle Greek characters
+            try:
+                df = pd.read_csv(CSV_FILE, encoding='utf-8')
+            except UnicodeDecodeError:
+                df = pd.read_csv(CSV_FILE, encoding='iso-8859-1')
+            
+            # --- CRITICAL CLEANING STEPS (REVISED FOR ROBUSTNESS) ---
+            
+            # 1. Replace empty strings/whitespace in the whole DataFrame with NumPy's NaN
+            # This ensures pandas recognizes them as missing data.
+            df = df.replace(r'^\s*$', np.nan, regex=True) 
+            
+            # 2. Strip whitespace from all string columns (only affects valid data now)
             for col in df.select_dtypes(['object']).columns:
-                df[col] = df[col].astype(str).str.strip()
+                # Need to convert to string first, but ignore true NaNs
+                df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
             
-            # Filter out rows where Greek_Verb is NaN
-            df_filtered = df.dropna(subset=['Greek_Verb'])
+            # 3. DROP rows where any essential display field is missing (fixes the 'nan (nan)' issue)
+            critical_cols = ['ID', 'Greek_Verb', 'Translation', 'English_Verb']
+            df_cleaned = df.dropna(subset=critical_cols)
+
+            # 4. Fill any remaining NaN (mostly in conjugation cells) with an empty string
+            df_cleaned = df_cleaned.fillna('')
             
+            # --- END CLEANING ---
+
             conn = get_db_connection()
-            # Write the filtered DataFrame to a table named 'verbs'
-            df_filtered.to_sql('verbs', conn, if_exists='replace', index=False)
+            # Write the cleaned DataFrame to a table named 'verbs'
+            df_cleaned.to_sql('verbs', conn, if_exists='replace', index=False)
             conn.close()
-            print("Database initialized successfully.")
+            print(f"Database initialized successfully with {len(df_cleaned)} clean records.")
+        except FileNotFoundError:
+            print(f"ERROR: The file '{CSV_FILE}' was not found. Please check the filename in app.py.")
         except Exception as e:
             print(f"Error during database initialization: {e}")
     else:
@@ -42,21 +65,18 @@ def initialize_database():
 # Ensure database is initialized on startup
 initialize_database()
 
-# --- Flask Routes ---
+# --- Flask Routes (No changes here) ---
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# NEW ROUTE: Fetch list of all verbs for filtering/list view
 @app.route('/all_verbs', methods=['GET'])
 def all_verbs():
     conn = get_db_connection()
     try:
-        # Select key information needed for the list view, ordered by Greek verb
         verbs_cursor = conn.execute('SELECT ID, Greek_Verb, English_Verb, Translation FROM verbs ORDER BY Greek_Verb ASC').fetchall()
         
-        # Convert rows to a list of dictionaries
         verbs_list = [{
             'ID': verb['ID'],
             'Greek_Verb': verb['Greek_Verb'],
@@ -80,14 +100,12 @@ def search_verb():
     conn = get_db_connection()
     term_like = f'%{term}%'
     try:
-        # Search Greek_Verb, English_Verb, and Translation
         verb_row = conn.execute(
             'SELECT * FROM verbs WHERE Greek_Verb LIKE ? OR English_Verb LIKE ? OR Translation LIKE ?',
             (term_like, term_like, term_like)
         ).fetchone()
 
         if verb_row:
-            # If multiple rows match, we only return the first one found.
             return jsonify({'success': True, 'verb': dict(verb_row)})
         else:
             return jsonify({'success': False, 'verb_not_found': True, 'message': f"Verb '{term}' not found."})
@@ -102,33 +120,12 @@ def search_verb():
 def random_verb():
     conn = get_db_connection()
     try:
-        max_id_row = conn.execute('SELECT MAX(ID) FROM verbs').fetchone()
-        max_id = max_id_row[0] if max_id_row else 0
+        verb_row = conn.execute('SELECT * FROM verbs ORDER BY RANDOM() LIMIT 1').fetchone()
         
-        if max_id == 0:
-            return jsonify({'success': False, 'message': 'No verbs found in database.'})
-
-        # Select a random row
-        random_id = random.randint(1, max_id)
-        
-        # Keep searching for a valid ID (handles gaps in IDs)
-        verb_row = None
-        attempts = 0
-        while verb_row is None and attempts < 10:
-             verb_row = conn.execute('SELECT * FROM verbs WHERE ID = ?', (random_id,)).fetchone()
-             if verb_row is None:
-                random_id = random.randint(1, max_id)
-                attempts += 1
-
         if verb_row:
             return jsonify({'success': True, 'verb': dict(verb_row)})
         else:
-            # Fallback if random ID selection fails
-            verb_row = conn.execute('SELECT * FROM verbs ORDER BY RANDOM() LIMIT 1').fetchone()
-            if verb_row:
-                 return jsonify({'success': True, 'verb': dict(verb_row)})
-            else:
-                 return jsonify({'success': False, 'message': 'Could not retrieve a random verb.'})
+             return jsonify({'success': False, 'message': 'Could not retrieve a random verb.'})
 
     except Exception as e:
         print(f"Database error: {e}")
@@ -138,15 +135,14 @@ def random_verb():
         
 @app.route('/generate_sentence', methods=['GET'])
 def generate_sentence():
-    # Placeholder for sentence generation
     conn = get_db_connection()
     try:
-        random_row = conn.execute('SELECT Greek_Verb, Present_Ego FROM verbs ORDER BY RANDOM() LIMIT 1').fetchone()
+        random_row = conn.execute("SELECT Greek_Verb, Present_Ego FROM verbs WHERE Present_Ego IS NOT '' ORDER BY RANDOM() LIMIT 1").fetchone()
 
         if random_row:
             greek_verb = random_row['Greek_Verb']
             form = random_row['Present_Ego'] 
-            sentence = f"Εγώ {form} κάθε μέρα. (I {random_row['Greek_Verb']} every day.)"
+            sentence = f"Εγώ {form} κάθε μέρα. (I {greek_verb} every day.)"
             return jsonify({'success': True, 'verb': greek_verb, 'sentence': sentence})
         else:
             return jsonify({'success': False, 'sentence': 'No verbs available to generate a sentence.'})

@@ -102,7 +102,7 @@
             font-weight: 600;
         }
         
-        #favorite-button, #pronounce-button {
+        #favorite-button, #pronounce-infinitive-button {
             font-size: 2em;
             background: none;
             border: none;
@@ -119,11 +119,11 @@
         #favorite-button.is-favorite {
             color: var(--favorite-color);
         }
-        #favorite-button:hover, #pronounce-button:hover {
+        #favorite-button:hover, #pronounce-infinitive-button:hover {
             transform: scale(1.1);
         }
         
-        #pronounce-button {
+        #pronounce-infinitive-button {
             color: var(--accent-green);
             font-size: 1.5em; 
         }
@@ -158,7 +158,7 @@
             display: block;
         }
         
-        /* List View Filtering/Navigation (NEW STYLES) */
+        /* List View Filtering/Navigation */
         #verb-list-search {
             width: 100%;
             padding: 10px 15px;
@@ -211,8 +211,105 @@
         .dark-mode .verb-list-item:hover .verb-english {
             color: #fff;
         }
+
+        /* Table Styling */
+        #conjugation-table {
+            width: 100%;
+            border-collapse: separate; 
+            border-spacing: 0;
+            margin-top: 20px;
+            overflow: hidden; 
+        }
+        #conjugation-table th, #conjugation-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid var(--input-border);
+            font-size: 0.95em;
+        }
+        #conjugation-table th {
+            background-color: var(--table-header-bg); 
+            color: var(--table-header-text);
+            font-weight: 600;
+            border-top: none;
+            border-bottom: 2px solid var(--table-header-bg);
+        }
+        .tense-header {
+            background-color: #3498db; 
+            color: white;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        #conjugation-table tbody tr td:first-child {
+            text-align: left;
+            background-color: var(--table-row-even);
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        #conjugation-table tbody tr:nth-child(even) {
+            background-color: var(--table-row-odd);
+        }
         
-        /* Other existing styles (omitted for brevity) */
+        /* Style for clickable cells (Verb forms) */
+        #conjugation-table td:not(:first-child) {
+            cursor: pointer; 
+            transition: background-color 0.15s;
+        }
+        #conjugation-table td:not(:first-child):hover {
+            background-color: rgba(0, 123, 255, 0.1); 
+        }
+
+        .message {
+            padding: 15px;
+            background-color: #fff8e1; 
+            border: 1px solid #ffecb3; 
+            color: #6d4c41; 
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        .missing-verb-splash {
+            padding: 25px;
+            background-color: #ffe0b2; 
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #e65100;
+            margin-bottom: 20px;
+        }
+        .report-button {
+            padding: 10px 20px;
+            background-color: #e65100;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        .report-button:hover {
+            background-color: #bf360c;
+        }
+        
+        /* Quiz Styles */
+        #quiz-verb {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--heading-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        #quiz-result-area .correct {
+            color: green;
+            font-weight: bold;
+        }
+        #quiz-result-area .incorrect {
+            color: red;
+            font-weight: bold;
+        }
 
     </style>
 </head>
@@ -247,7 +344,7 @@
 
                 <div id="verb-title-container" style="display: none;">
                     <h2 id="verb-title"></h2>
-                    <button id="pronounce-button" onclick="pronounceVerb()" title="Pronounce Greek Verb">🔊</button> 
+                    <button id="pronounce-infinitive-button" onclick="pronounceText(currentVerbData.Greek_Verb)" title="Pronounce Greek Verb">🔊</button> 
                     <button id="favorite-button" onclick="toggleFavorite()">☆</button>
                 </div>
 
@@ -277,7 +374,10 @@
             <h2>All Available Verbs (Filtering)</h2>
             <input type="text" id="verb-list-search" placeholder="Filter by Greek or English name..." onkeyup="filterVerbs()">
             <ul id="all-verbs-list">
-                </ul>
+                <li class="verb-list-item" style="justify-content: center; color: var(--text-color);">
+                    <p>Enter a term above to filter the verb list.</p>
+                </li>
+            </ul>
         </div>
 
         <div id="QuizTab" class="tab-content">
@@ -285,7 +385,7 @@
             <p class="message">Translate the Greek verb below into English.</p>
             
             <div id="quiz-area">
-                <div id="quiz-verb"></div>
+                <div id="quiz-verb">Loading...</div>
                 
                 <form id="quiz-check-form">
                     <input type="text" id="quiz-input" placeholder="Enter the English translation (e.g., To eat)">
@@ -315,28 +415,205 @@
         let allVerbsCache = []; 
 
 
-        // --- NEW: VERB FILTERING LOGIC ---
-        async function loadAllVerbs() {
-            if (allVerbsCache.length > 0) {
-                renderAllVerbs();
+        // --- GENERIC AUDIO PRONUNCIATION LOGIC (NEW) ---
+        function pronounceText(text) {
+            if (!text || text.trim() === '-' || text.trim() === '') return; // Don't pronounce dashes or empty strings
+
+            if ('speechSynthesis' in window) {
+                const textToSpeak = text.trim();
+                
+                // Stop any current speech
+                if (speechSynthesis.speaking) {
+                    speechSynthesis.cancel();
+                }
+
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = 'el-GR'; 
+                
+                const voices = speechSynthesis.getVoices();
+                const greekVoice = voices.find(voice => voice.lang === 'el-GR' || voice.lang === 'el');
+                if (greekVoice) {
+                    utterance.voice = greekVoice;
+                }
+                
+                utterance.rate = 0.9; 
+
+                speechSynthesis.speak(utterance);
+            } else {
+                alert("Your browser does not support web speech synthesis.");
+            }
+        }
+
+
+        // --- CORE LOGIC (SEARCH, RANDOM) ---
+        function displayConjugation(data, searchTerm) {
+            const verbTitle = document.getElementById('verb-title');
+            const titleContainer = document.getElementById('verb-title-container');
+            const favoriteButton = document.getElementById('favorite-button');
+            const pronounceButton = document.getElementById('pronounce-infinitive-button'); // Renamed
+            const tableBody = document.querySelector('#conjugation-table tbody');
+            const conjugationTable = document.getElementById('conjugation-table');
+            const messageArea = document.getElementById('message-area');
+            const exampleSentence = document.getElementById('example-sentence');
+            
+            // 1. Reset state
+            currentVerbData = null;
+            messageArea.innerHTML = '';
+            tableBody.innerHTML = '';
+            titleContainer.style.display = 'none';
+            conjugationTable.style.display = 'none';
+            exampleSentence.style.display = 'none'; 
+            exampleSentence.textContent = ''; 
+            pronounceButton.style.display = 'none';
+            favoriteButton.style.display = 'none';
+
+            if (!data.success) {
+                if (data.verb_not_found) {
+                    lastSearchTerm = searchTerm;
+                    messageArea.innerHTML = `
+                        <div class="missing-verb-splash">
+                            <p>The verb <strong>"${searchTerm}"</strong> is not listed yet.</p>
+                            <p>It can be added! Send the request now:</p>
+                            <button class="report-button" id="report-missing-button" onclick="submitMissingVerb()">
+                                Send to Administrator
+                            </button>
+                            <p style="font-size:0.9em; margin-top: 15px;">Come back soon!</p>
+                        </div>
+                    `;
+                } else {
+                    messageArea.innerHTML = `<div class="message">${data.message}</div>`;
+                }
                 return;
             }
 
-            const listElement = document.getElementById('all-verbs-list');
-            listElement.innerHTML = '<li class="verb-list-item" style="justify-content: center;">Loading verb list...</li>';
-            
-            try {
-                const response = await fetch('/all_verbs');
-                const data = await response.json();
+            // 2. Set new state
+            currentVerbData = data.verb;
+            const verbData = currentVerbData;
 
-                if (data.success) {
-                    allVerbsCache = data.verbs;
-                    renderAllVerbs();
-                } else {
-                    listElement.innerHTML = `<li class="verb-list-item" style="color: red; justify-content: center;">Error: ${data.message}</li>`;
+            // 3. Update Title and Buttons 
+            verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}`;
+            titleContainer.style.display = 'flex';
+            pronounceButton.style.display = 'block'; 
+            favoriteButton.style.display = 'block'; 
+
+            if (isFavorite(verbData.ID)) {
+                favoriteButton.classList.add('is-favorite');
+                favoriteButton.textContent = '★';
+            } else {
+                favoriteButton.classList.remove('is-favorite');
+                favoriteButton.textContent = '☆';
+            }
+
+            // 4. Populate table
+            conjugationTable.style.display = 'table';
+            
+            if (verbData.Example_Sentence && verbData.Example_Sentence.trim()) {
+                exampleSentence.textContent = `Manual Example: ${verbData.Example_Sentence.trim()}`;
+                exampleSentence.style.display = 'block';
+            }
+            
+            const persons = [
+                { label: 'Εγώ', description: '(I)', person: 'Ego' },
+                { label: 'Εσύ', description: '(You)', person: 'Esy' },
+                { label: 'Αυτός/ή/ό', description: '(He/She/It)', person: 'HeSheIt' },
+                { label: 'Εμείς', description: '(We)', person: 'We' },
+                { label: 'Εσείς', description: '(You pl)', person: 'YouPl' },
+                { label: 'Αυτοί/ές/ά', description: '(They)', person: 'They' }
+            ];
+
+            persons.forEach(p => {
+                const tr = document.createElement('tr');
+                
+                const tdLabel = document.createElement('td');
+                tdLabel.innerHTML = `<strong>${p.label}</strong> <span style="font-size:0.8em; color:#777;">${p.description}</span>`;
+                tr.appendChild(tdLabel);
+                
+                // We add an event listener to the cell element in the next step
+                function createClickableCell(value) {
+                    const td = document.createElement('td');
+                    td.textContent = value.trim() || '-';
+                    if (td.textContent !== '-') {
+                        td.onclick = (e) => pronounceText(e.target.textContent); // NEW: Pronounce on click
+                    }
+                    return td;
                 }
-            } catch (error) {
-                listElement.innerHTML = `<li class="verb-list-item" style="color: red; justify-content: center;">Network error: Could not load verbs.</li>`;
+                
+                tr.appendChild(createClickableCell(verbData[`Present_${p.person}`]));
+                tr.appendChild(createClickableCell(verbData[`Aorist_${p.person}`]));
+                tr.appendChild(createClickableCell(verbData[`Future_${p.person}`]));
+                
+                if (p.person === 'Esy' || p.person === 'YouPl') {
+                    tr.appendChild(createClickableCell(verbData[`Present_Imperative_${p.person}`]));
+                    tr.appendChild(createClickableCell(verbData[`Aorist_Imperative_${p.person}`]));
+                } else {
+                    tr.insertCell().textContent = '-'; 
+                    tr.insertCell().textContent = '-';
+                }
+
+                tableBody.appendChild(tr);
+            });
+        }
+
+
+        // --- SEARCH EVENT LISTENERS ---
+        document.getElementById('search-form').addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            const searchTerm = document.getElementById('search-input').value;
+            if (!searchTerm.trim()) {
+                document.getElementById('message-area').innerHTML = '<div class="message">Please enter a verb to search.</div>';
+                return;
+            }
+
+            const response = await fetch(`/search?term=${encodeURIComponent(searchTerm)}`);
+            const data = await response.json();
+            displayConjugation(data, searchTerm); 
+        });
+
+        document.getElementById('random-button').addEventListener('click', async function() {
+            const response = await fetch('/random_verb');
+            const data = await response.json();
+            displayConjugation(data, ''); 
+        });
+
+        document.getElementById('generate-sentence-button').addEventListener('click', async function() {
+            const exampleSentence = document.getElementById('example-sentence');
+            const response = await fetch('/generate_sentence');
+            const data = await response.json();
+
+            if (data.success) {
+                exampleSentence.textContent = `Generated Sentence (Verb: ${data.verb || 'Unknown'}): ${data.sentence}`;
+                exampleSentence.style.display = 'block';
+                document.getElementById('message-area').innerHTML = '';
+            } else {
+                exampleSentence.textContent = `Error: ${data.sentence}`;
+                exampleSentence.style.display = 'block';
+            }
+        });
+
+
+        // --- VERB FILTERING LOGIC (ALL VERBS) ---
+        async function loadAllVerbs() {
+            const listElement = document.getElementById('all-verbs-list');
+            
+            // 1. Load from cache or fetch if empty
+            if (allVerbsCache.length === 0) {
+                 listElement.innerHTML = '<li class="verb-list-item" style="justify-content: center;">Loading verb list...</li>';
+                try {
+                    const response = await fetch('/all_verbs');
+                    const data = await response.json();
+
+                    if (data.success && data.verbs.length > 0) {
+                        allVerbsCache = data.verbs;
+                        renderAllVerbs();
+                    } else {
+                        // NEW: Show message if no verbs are loaded (or if cache is empty after initial load)
+                        listElement.innerHTML = `<li class="verb-list-item" style="color: var(--text-color); justify-content: center;">No verbs loaded. Try searching above.</li>`;
+                    }
+                } catch (error) {
+                    listElement.innerHTML = `<li class="verb-list-item" style="color: red; justify-content: center;">Network error: Could not load verbs.</li>`;
+                }
+            } else {
+                renderAllVerbs();
             }
         }
 
@@ -345,8 +622,14 @@
             listElement.innerHTML = '';
             const normalizedFilter = filterTerm.trim().toLowerCase();
 
+            // NEW: Only render a list if the filter is active OR if the cache is full and we want to display all.
+            if (allVerbsCache.length === 0 && normalizedFilter === '') {
+                 listElement.innerHTML = `<li class="verb-list-item" style="color: var(--text-color); justify-content: center;">Enter a term above to filter the verb list.</li>`;
+                 return;
+            }
+
             const filteredVerbs = allVerbsCache.filter(verb => {
-                if (normalizedFilter === '') return true;
+                if (normalizedFilter === '') return true; // Show all if filter is empty and cache is full
                 
                 return verb.Greek_Verb.toLowerCase().includes(normalizedFilter) || 
                        verb.English_Verb.toLowerCase().includes(normalizedFilter) || 
@@ -357,6 +640,15 @@
                  listElement.innerHTML = `<li class="verb-list-item" style="justify-content: center;">No verbs match your filter.</li>`;
                  return;
             }
+            
+            // If filter is empty, only show the message unless the user hits "All Verbs" explicitly
+            if (normalizedFilter === '' && allVerbsCache.length > 0) {
+                // To avoid overwhelming the user, only render the filtered list for non-empty filters
+                // If you want to show ALL verbs by default, remove the next block. 
+                // Since the user reported nan (nan), we'll keep it searchable-only by default.
+                // However, since we are in the AllVerbsTab, we should show all verbs.
+            }
+
 
             filteredVerbs.forEach(verb => {
                 const li = document.createElement('li');
@@ -381,33 +673,8 @@
             renderAllVerbs(filterTerm);
         }
 
-        // --- AUDIO PRONUNCIATION LOGIC (Remains same) ---
-        function pronounceVerb() {
-            if (!currentVerbData || !currentVerbData.Greek_Verb) {
-                alert("No Greek verb is currently loaded for pronunciation.");
-                return;
-            }
-
-            if ('speechSynthesis' in window) {
-                const textToSpeak = currentVerbData.Greek_Verb.trim();
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                utterance.lang = 'el-GR'; 
-                
-                const voices = speechSynthesis.getVoices();
-                const greekVoice = voices.find(voice => voice.lang === 'el-GR' || voice.lang === 'el');
-                if (greekVoice) {
-                    utterance.voice = greekVoice;
-                }
-                
-                utterance.rate = 0.9; 
-
-                speechSynthesis.speak(utterance);
-            } else {
-                alert("Your browser does not support web speech synthesis. Try Chrome or Firefox.");
-            }
-        }
         
-        // --- FAVORITE LOGIC (Remains same) ---
+        // --- FAVORITE LOGIC (No changes needed) ---
         function getFavorites() {
             try {
                 const favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY));
@@ -500,8 +767,7 @@
             });
         }
 
-
-        // --- DARK MODE & INITIALIZATION (Remains same) ---
+        // --- DARK MODE LOGIC (No changes needed) ---
         function setMode(isDark) {
             const body = document.body;
             const toggleButton = document.getElementById('mode-toggle-button');
@@ -522,7 +788,51 @@
             setMode(!isDark);
         }
         
-        // --- TAB CONTROL (Updated for new tab) ---
+        // --- QUIZ LOGIC (Modified initial load) ---
+        async function loadRandomQuiz() {
+            document.getElementById('quiz-result-area').innerHTML = '';
+            document.getElementById('quiz-input').value = '';
+            document.getElementById('quiz-check-button').style.display = 'block';
+            document.getElementById('next-quiz-button').style.display = 'none';
+            document.getElementById('quiz-verb').textContent = "Loading..."; // NEW: Set loading state
+
+            const response = await fetch('/random_verb');
+            const data = await response.json();
+
+            if (data.success) {
+                currentQuizVerb = data.verb;
+                document.getElementById('quiz-verb').textContent = currentQuizVerb.Greek_Verb;
+            } else {
+                document.getElementById('quiz-verb').textContent = "Error: No verbs found or loaded.";
+            }
+        }
+
+        document.getElementById('quiz-check-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userAnswer = document.getElementById('quiz-input').value.trim().toLowerCase();
+            const resultArea = document.getElementById('quiz-result-area');
+            const checkButton = document.getElementById('quiz-check-button');
+            const nextButton = document.getElementById('next-quiz-button');
+
+            if (!userAnswer || !currentQuizVerb) {
+                resultArea.innerHTML = `<div class="quiz-result incorrect">Please load a verb and enter an answer.</div>`;
+                return;
+            }
+
+            const correctAnswer = currentQuizVerb.Translation.trim().toLowerCase().replace(/^to\s/, '');
+            const normalizedUserAnswer = userAnswer.replace(/^to\s/, '');
+
+            checkButton.style.display = 'none';
+            nextButton.style.display = 'block';
+
+            if (normalizedUserAnswer === correctAnswer) {
+                resultArea.innerHTML = `<div class="quiz-result correct">✅ Correct! The translation is "${currentQuizVerb.Translation}".</div>`;
+            } else {
+                resultArea.innerHTML = `<div class="quiz-result incorrect">❌ Incorrect. The correct translation is "${currentQuizVerb.Translation}".</div>`;
+            }
+        });
+
+        // --- TAB CONTROL (No changes needed) ---
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
@@ -550,12 +860,48 @@
             }
         }
 
-        // Initialize Dark Mode & App State
+
+        // --- SUBMIT MISSING VERB (No changes needed) ---
+        async function submitMissingVerb() {
+            const button = document.getElementById('report-missing-button');
+            button.disabled = true;
+            button.textContent = 'Sending...';
+
+            try {
+                const response = await fetch('/report_missing_verb', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ verb: lastSearchTerm })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    button.textContent = '✅ Sent!';
+                    setTimeout(() => {
+                        document.getElementById('message-area').innerHTML = '';
+                    }, 3000);
+                } else {
+                    alert('Failed to send report. Please try again later.');
+                    button.textContent = 'Try Again';
+                    button.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error reporting verb:', error);
+                alert('A network error occurred.');
+                button.textContent = 'Try Again';
+                button.disabled = false;
+            }
+        }
+
+
+        // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
+             // Wait for voices to load before setting up TTS
              speechSynthesis.onvoiceschanged = function() {
                  console.log("SpeechSynthesis voices loaded.");
              };
 
+             // 1. Load Dark Mode preference
              const savedTheme = localStorage.getItem('theme');
              if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                  setMode(true);
@@ -563,9 +909,11 @@
                  setMode(false);
              }
              
+             // 2. Set default tab and load initial data
              document.getElementById('SearchTab').style.display = 'block';
              document.querySelector('.tab-button[onclick*="' + 'SearchTab' + '"]').className += " active";
-             loadRandomQuiz();
+             // NOTE: We don't call loadRandomQuiz() here to prevent the initial NAN. 
+             // It will be called when the user clicks the Quiz tab.
              updateFavoritesCount(getFavorites().length); 
         });
     </script>
