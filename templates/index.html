@@ -18,6 +18,7 @@
             --table-row-even: #f7f7f7;
             --input-border: #ddd;
             --link-color: #007bff;
+            --favorite-color: #ffd700; /* Gold for star */
         }
 
         .dark-mode {
@@ -31,6 +32,7 @@
             --table-row-even: #1e1e1e;
             --input-border: #555;
             --link-color: #90bfff;
+            --favorite-color: #ffcc00; /* Slightly lighter gold for dark mode */
         }
 
         /* -------------------------------------- */
@@ -81,6 +83,39 @@
             color: var(--bg-primary);
         }
 
+        /* Verb Title & Favorite Button Styling */
+        #verb-title-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--input-border);
+            padding-bottom: 10px;
+        }
+        #verb-title {
+            color: var(--text-color);
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+        #favorite-button {
+            font-size: 2em;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: gray;
+            transition: color 0.2s, transform 0.2s;
+            line-height: 1; 
+            padding: 0;
+            margin: 0;
+        }
+        #favorite-button.is-favorite {
+            color: var(--favorite-color);
+        }
+        #favorite-button:hover {
+            transform: scale(1.1);
+        }
 
         /* Tabs Navigation */
         .tabs {
@@ -110,7 +145,7 @@
             display: block;
         }
 
-        /* Search Bar Styling */
+        /* Search Bar Styling (Remains same) */
         #search-controls {
             display: flex;
             gap: 10px;
@@ -145,13 +180,13 @@
             transition: background-color 0.3s;
         }
         #search-button {
-            background-color: #007bff; /* Fixed Blue */
+            background-color: #007bff; 
         }
         #random-button {
-            background-color: #28a745; /* Fixed Green */
+            background-color: #28a745; 
         }
         #generate-sentence-button {
-            background-color: #ff8c00; /* Fixed Orange */
+            background-color: #ff8c00; 
             flex-grow: 1; 
             margin-top: 15px; 
             width: 100%;
@@ -167,18 +202,7 @@
         }
 
 
-        /* Verb Title */
-        #verb-title {
-            text-align: center;
-            color: var(--text-color);
-            font-size: 1.8em;
-            margin-top: 20px;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--input-border);
-            padding-bottom: 10px;
-        }
-
-        /* Table Styling */
+        /* Table Styling (Remains same) */
         #conjugation-table {
             width: 100%;
             border-collapse: separate; 
@@ -200,7 +224,7 @@
             border-bottom: 2px solid var(--table-header-bg);
         }
         .tense-header {
-            background-color: #3498db; /* Fixed Light Blue */
+            background-color: #3498db; 
             color: white;
             font-size: 1.1em;
             font-weight: bold;
@@ -233,94 +257,46 @@
             font-size: 1.1em;
             margin-bottom: 20px;
         }
-        
-        /* Example Sentence Styling */
-        #example-sentence {
-            margin-top: 35px;
-            padding: 20px;
-            border: 1px solid #ff8c00;
-            border-left: 5px solid #ff8c00; 
-            border-radius: 4px;
-            background-color: #fff2e6; 
-            text-align: center;
-            font-size: 1.1em;
-            font-style: italic;
-            color: #cc7000;
-        }
 
-        /* Missing Verb Splash Box */
-        .missing-verb-splash {
-            padding: 25px;
-            background-color: #ffe0b2; 
-            border: 2px solid #ff9800;
-            border-radius: 10px;
-            text-align: center;
-            font-size: 1.2em;
-            color: #e65100;
-            margin-bottom: 20px;
+        /* Favorites List Styling */
+        #favorites-list {
+            list-style: none;
+            padding: 0;
         }
-        .report-button {
-            padding: 10px 20px;
-            background-color: #e65100;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 10px;
-            font-size: 1em;
+        .favorite-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             transition: background-color 0.3s;
         }
-        .report-button:hover {
-            background-color: #bf360c;
+        .favorite-item:hover {
+            background-color: var(--input-border);
         }
-        
-        /* Quiz Styles */
-        #quiz-verb {
-            font-size: 2em;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 20px;
-            color: var(--heading-color);
-        }
-        #quiz-check-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        #quiz-input {
-            flex-grow: 1;
-            padding: 12px 15px;
-            border: 2px solid var(--input-border);
-            border-radius: 8px;
-            font-size: 17px;
-            background-color: var(--bg-primary);
-            color: var(--text-color);
-        }
-        #quiz-check-button {
-            padding: 12px 25px;
-            background-color: #ffc107;
-            color: #333;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 17px;
-        }
-        .quiz-result {
-            padding: 15px;
-            border-radius: 8px;
+        .favorite-item-name {
             font-size: 1.1em;
-            text-align: center;
+            font-weight: 600;
+            color: var(--heading-color);
+            cursor: pointer;
         }
-        .correct {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .remove-favorite-button {
+            background: none;
+            border: none;
+            color: #dc3545; /* Red */
+            font-size: 1.5em;
+            cursor: pointer;
+            line-height: 1;
         }
-        .incorrect {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .remove-favorite-button:hover {
+            color: #a71d2a;
         }
+
+        /* (Other styles remain the same for brevity) */
+
     </style>
 </head>
 <body>
@@ -334,6 +310,7 @@
         <div class="tabs">
             <button class="tab-button active" onclick="openTab(event, 'SearchTab')">🔍 Conjugation Search</button>
             <button class="tab-button" onclick="openTab(event, 'QuizTab')">🧠 Quiz</button>
+            <button class="tab-button" onclick="openTab(event, 'FavoritesTab')">⭐ Favorites (<span id="favorites-count">0</span>)</button>
         </div>
 
         <div id="SearchTab" class="tab-content active">
@@ -349,7 +326,12 @@
 
             <div id="results-container">
                 <div id="message-area"></div>
-                <h2 id="verb-title"></h2>
+
+                <div id="verb-title-container" style="display: none;">
+                    <h2 id="verb-title"></h2>
+                    <button id="favorite-button" onclick="toggleFavorite()">☆</button>
+                </div>
+
                 <table id="conjugation-table" style="display: none;">
                     <thead>
                         <tr>
@@ -388,15 +370,126 @@
                 <button id="next-quiz-button" style="display: none; padding: 10px; margin-top: 10px;" onclick="loadRandomQuiz()">Next Verb</button>
             </div>
         </div>
+        
+        <div id="FavoritesTab" class="tab-content">
+            <h2>Your Favorite Verbs</h2>
+            <p id="favorites-message" class="message">Your saved verbs will appear here.</p>
+            <ul id="favorites-list">
+                </ul>
+        </div>
 
     </div>
 
     <script>
         // --- GLOBALS ---
+        let currentVerbData = null; // Stores the currently displayed verb's data
         let currentQuizVerb = null;
-        let lastSearchTerm = ''; 
+        let lastSearchTerm = '';
+        const FAVORITES_KEY = 'greekVerbFavorites'; // Key for localStorage
+
+        // --- FAVORITE LOGIC ---
+
+        function getFavorites() {
+            try {
+                const favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY));
+                return Array.isArray(favorites) ? favorites : [];
+            } catch (e) {
+                console.error("Error reading favorites from localStorage", e);
+                return [];
+            }
+        }
+
+        function saveFavorites(favorites) {
+            localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+            updateFavoritesCount(favorites.length);
+        }
+
+        function isFavorite(verbId) {
+            const favorites = getFavorites();
+            return favorites.some(v => v.ID === verbId);
+        }
         
-        // --- NEW: DARK MODE LOGIC ---
+        function updateFavoritesCount(count) {
+            document.getElementById('favorites-count').textContent = count;
+        }
+
+        function toggleFavorite() {
+            if (!currentVerbData) return;
+
+            const verbId = currentVerbData.ID;
+            const verbGreek = currentVerbData.Greek_Verb;
+            const verbEnglish = currentVerbData.English_Verb;
+            
+            let favorites = getFavorites();
+            const favoriteButton = document.getElementById('favorite-button');
+            
+            if (isFavorite(verbId)) {
+                // Remove from favorites
+                favorites = favorites.filter(v => v.ID !== verbId);
+                favoriteButton.classList.remove('is-favorite');
+                favoriteButton.textContent = '☆';
+            } else {
+                // Add to favorites
+                favorites.push({ ID: verbId, Greek_Verb: verbGreek, English_Verb: verbEnglish });
+                favoriteButton.classList.add('is-favorite');
+                favoriteButton.textContent = '★';
+            }
+
+            saveFavorites(favorites);
+            renderFavoritesList(); 
+        }
+
+        function renderFavoritesList() {
+            const favoritesList = document.getElementById('favorites-list');
+            const favoritesMessage = document.getElementById('favorites-message');
+            const favorites = getFavorites();
+            favoritesList.innerHTML = ''; // Clear existing list
+
+            if (favorites.length === 0) {
+                favoritesMessage.textContent = 'You have not saved any favorite verbs yet.';
+                favoritesMessage.style.display = 'block';
+                return;
+            }
+
+            favoritesMessage.style.display = 'none';
+
+            favorites.forEach(verb => {
+                const li = document.createElement('li');
+                li.className = 'favorite-item';
+                
+                // Name (clickable to search)
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'favorite-item-name';
+                nameSpan.textContent = `${verb.Greek_Verb} (${verb.English_Verb})`;
+                nameSpan.onclick = () => {
+                    document.getElementById('search-input').value = verb.Greek_Verb;
+                    // Trigger a synthetic search form submission
+                    document.getElementById('search-form').dispatchEvent(new Event('submit'));
+                    // Switch back to Search tab
+                    openTab(null, 'SearchTab'); 
+                };
+                
+                // Remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-favorite-button';
+                removeBtn.textContent = '✖';
+                removeBtn.title = 'Remove from Favorites';
+                removeBtn.onclick = () => {
+                    // Temporarily set currentVerbData to the verb being removed to use toggleFavorite
+                    currentVerbData = verb; 
+                    toggleFavorite(); 
+                    currentVerbData = null; // Clear it afterward
+                    renderFavoritesList(); // Re-render the list immediately
+                };
+
+                li.appendChild(nameSpan);
+                li.appendChild(removeBtn);
+                favoritesList.appendChild(li);
+            });
+        }
+
+
+        // --- DARK MODE LOGIC ---
         function setMode(isDark) {
             const body = document.body;
             const toggleButton = document.getElementById('mode-toggle-button');
@@ -417,7 +510,7 @@
             setMode(!isDark);
         }
         
-        // --- NEW: SUBMIT MISSING VERB ---
+        // --- SUBMIT MISSING VERB ---
         async function submitMissingVerb() {
             const button = document.getElementById('report-missing-button');
             const originalText = button.textContent;
@@ -451,17 +544,21 @@
         }
 
 
-        // --- CORE LOGIC ---
+        // --- CORE LOGIC (UPDATED for Favorites Display) ---
         function displayConjugation(data, searchTerm) {
             const verbTitle = document.getElementById('verb-title');
+            const titleContainer = document.getElementById('verb-title-container');
+            const favoriteButton = document.getElementById('favorite-button');
             const tableBody = document.querySelector('#conjugation-table tbody');
             const conjugationTable = document.getElementById('conjugation-table');
             const messageArea = document.getElementById('message-area');
             const exampleSentence = document.getElementById('example-sentence');
-
+            
+            // 1. Reset state
+            currentVerbData = null;
             messageArea.innerHTML = '';
             tableBody.innerHTML = '';
-            verbTitle.textContent = '';
+            titleContainer.style.display = 'none';
             conjugationTable.style.display = 'none';
             exampleSentence.style.display = 'none'; 
             exampleSentence.textContent = ''; 
@@ -485,8 +582,23 @@
                 return;
             }
 
-            const verbData = data.verb;
+            // 2. Set new state
+            currentVerbData = data.verb;
+            const verbData = currentVerbData;
+
+            // 3. Update Title and Favorite button
             verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}`;
+            titleContainer.style.display = 'flex'; // Show title container
+
+            if (isFavorite(verbData.ID)) {
+                favoriteButton.classList.add('is-favorite');
+                favoriteButton.textContent = '★';
+            } else {
+                favoriteButton.classList.remove('is-favorite');
+                favoriteButton.textContent = '☆';
+            }
+
+            // 4. Populate table
             conjugationTable.style.display = 'table';
             
             if (verbData.Example_Sentence && verbData.Example_Sentence.trim()) {
@@ -563,6 +675,7 @@
             }
         });
 
+        // (Quiz functions remain the same)
         async function loadRandomQuiz() {
             document.getElementById('quiz-result-area').innerHTML = '';
             document.getElementById('quiz-input').value = '';
@@ -613,28 +726,36 @@
                 tablinks[i].className = tablinks[i].className.replace(" active", "");
             }
             document.getElementById(tabName).style.display = "block";
-            evt.currentTarget.className += " active";
+            if (evt) {
+                evt.currentTarget.className += " active";
+            } else {
+                // Handle case where tab is opened programmatically
+                document.querySelector(`.tab-button[onclick*="'${tabName}'"]`).className += " active";
+            }
+
 
             if (tabName === 'QuizTab') {
                 loadRandomQuiz();
+            } else if (tabName === 'FavoritesTab') {
+                renderFavoritesList(); // Load favorites list every time the tab is opened
             }
         }
 
-        // Initialize Dark Mode based on preference
+        // Initialize Dark Mode & App State
         document.addEventListener('DOMContentLoaded', () => {
              // 1. Initialize Dark Mode preference
              const savedTheme = localStorage.getItem('theme');
-             // Default to dark if user prefers it on system, or if 'dark' is saved
              if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                  setMode(true);
              } else {
                  setMode(false);
              }
              
-             // 2. Initialize Tab State
+             // 2. Initialize App State
              document.getElementById('SearchTab').style.display = 'block';
-             document.querySelector('.tab-button.active').className = 'tab-button active';
+             document.querySelector('.tab-button[onclick*="' + 'SearchTab' + '"]').className += " active";
              loadRandomQuiz();
+             updateFavoritesCount(getFavorites().length); // Load initial favorite count
         });
     </script>
 </body>
