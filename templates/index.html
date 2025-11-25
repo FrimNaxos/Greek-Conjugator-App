@@ -3,15 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Greek Verb Finder & Conjugator</title>
+    <title>Full Greek Verb Learning App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, setLogLevel, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment (MANDATORY USE)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // --- Firebase Initialization and Authentication ---
+        window.initFirebase = async () => {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase configuration is missing. Favorites feature will be disabled.");
+                isAuthReady = true;
+                return;
+            }
+
+            try {
+                // Set Firestore logging level to debug
+                setLogLevel('debug');
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Set persistence to local storage to maintain session (optional, but good practice)
+                await setPersistence(auth, browserLocalPersistence);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Authenticated user ID:", userId);
+                    } else {
+                        // Sign in if no user is present
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                    isAuthReady = true;
+                    // Once auth is ready, initialize app functionality (like favorites listener)
+                    window.dispatchEvent(new CustomEvent('authReady'));
+                });
+            } catch (error) {
+                console.error("Firebase initialization or authentication failed:", error);
+                isAuthReady = true; // Still set to true to proceed without persistence
+            }
+        };
+
+        // --- Favorites Data Management (Firestore) ---
+        window.favorites = [];
+        const FAVORITES_COLLECTION_PATH = `/artifacts/${appId}/users/`; // Need to append userId
+
+        // Sets up real-time listener for user's favorites
+        window.setupFavoritesListener = () => {
+            if (!isAuthReady || !db || !userId) return;
+
+            const userDocRef = doc(db, FAVORITES_COLLECTION_PATH + userId, "user_data");
+
+            // Real-time listener
+            onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data().favoriteVerbs) {
+                    window.favorites = docSnap.data().favoriteVerbs;
+                    console.log("Favorites updated from Firestore:", window.favorites);
+                } else {
+                    window.favorites = [];
+                    console.log("No favorites found in Firestore. Initializing empty list.");
+                }
+                // Re-render the favorites tab whenever the data changes
+                renderFavorites();
+                // Ensure conjugation display is updated if the current verb is added/removed from favorites
+                if (activeVerbIndex !== -1 && currentTab === 'search') {
+                    renderConjugation(verbs[activeVerbIndex]);
+                }
+            }, (error) => {
+                console.error("Error setting up favorites listener:", error);
+            });
+        };
+
+        // Function to toggle a verb's favorite status
+        window.toggleFavorite = async (greekVerb) => {
+            if (!db || !userId) {
+                console.error("Firestore not ready or user not authenticated.");
+                return;
+            }
+
+            const userDocRef = doc(db, FAVORITES_COLLECTION_PATH + userId, "user_data");
+            const isFavorite = window.favorites.includes(greekVerb);
+
+            try {
+                const updateField = isFavorite ? arrayRemove(greekVerb) : arrayUnion(greekVerb);
+                const action = isFavorite ? "Removing" : "Adding";
+                console.log(`${action} ${greekVerb} to favorites...`);
+
+                await setDoc(userDocRef, {
+                    favoriteVerbs: updateField
+                }, { merge: true });
+
+            } catch (error) {
+                console.error("Error toggling favorite status:", error);
+            }
+        };
+
+        // Attach listener setup to authReady event
+        window.addEventListener('authReady', window.setupFavoritesListener);
+
+    </script>
     <style>
         :root {
-            --primary: #3498db;
-            --secondary: #2ecc71;
-            --background: #ecf0f1;
-            --text: #2c3e50;
+            --primary: #2980b9; /* A darker, professional blue */
+            --secondary: #27ae60;
+            --background: #f4f6f9;
+            --text: #34495e;
             --subtle: #bdc3c7;
         }
         body {
@@ -19,206 +133,291 @@
             background-color: var(--background);
             color: var(--text);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
         }
         .container {
-            max-width: 900px;
+            max-width: 1100px;
             width: 95%;
-            margin-top: 2rem;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
+            margin: 2rem auto;
             background: white;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 5px 10px -5px rgba(0, 0, 0, 0.04);
-            border-radius: 12px;
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1), 0 5px 15px -5px rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
         }
-        .search-input {
-            transition: all 0.3s ease;
-            border-color: var(--subtle);
-        }
-        .search-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
-        }
-        .verb-item {
+        .tab-button {
+            padding: 0.75rem 1.5rem;
             cursor: pointer;
-            transition: background-color 0.2s;
+            font-weight: 600;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s ease;
+            color: var(--subtle);
+            border-bottom: 3px solid transparent;
         }
-        .verb-item:hover {
-            background-color: #f5f7f8;
+        .tab-button:hover {
+            color: var(--primary);
         }
-        .active-verb {
-            background-color: #e8f0fe !important;
-            border-left: 4px solid var(--primary);
-            padding-left: 1rem !important;
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
         }
         .conjugation-table {
             border-collapse: separate;
             border-spacing: 0;
             width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         .conjugation-table th, .conjugation-table td {
-            padding: 0.75rem;
+            padding: 0.75rem 1rem;
             text-align: left;
-            border-bottom: 1px solid var(--subtle);
+            border-bottom: 1px solid #f0f0f0;
         }
         .conjugation-table th {
             background-color: var(--primary);
             color: white;
-            font-weight: 600;
+            font-weight: 700;
         }
         .conjugation-table tr:last-child td {
             border-bottom: none;
         }
         .conjugation-table tr:nth-child(even) {
-            background-color: #fcfdfe;
+            background-color: #fafbfd;
         }
-        /* Custom scrollbar for verb list */
-        #verbList {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-        #verbList::-webkit-scrollbar {
-            width: 8px;
-        }
-        #verbList::-webkit-scrollbar-thumb {
-            background-color: var(--subtle);
-            border-radius: 4px;
-        }
-        #verbList::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        /* Style for person/pronoun column */
         .person-col {
             font-weight: 600;
             width: 30%;
             background-color: #f7f9fa;
         }
         .verb-col {
-            font-family: 'Times New Roman', serif; /* Use a classic font for Greek text presentation */
+            /* Using a serif font for Greek conjugation for better readability */
+            font-family: 'Times New Roman', serif;
             font-size: 1.1em;
             color: var(--text);
         }
+        #verbList {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .verb-item:hover { background-color: #eef3f7; }
+        .active-verb { background-color: #e5f1ff !important; border-left: 4px solid var(--primary); padding-left: 0.75rem !important; }
+        .favorite-btn { transition: color 0.2s, transform 0.1s; }
+        .favorite-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header class="mb-6">
-        <h1 class="text-3xl font-bold text-center text-gray-800">Ελληνικά Ρήματα (Greek Verbs)</h1>
-        <p class="text-center text-sm text-gray-500 mt-1" id="verbCountText">Loading...</p>
+    <header class="p-6 pb-0">
+        <h1 class="text-4xl font-bold text-center text-gray-800 mb-2">Greek Verb Trainer</h1>
+        <p class="text-center text-sm text-gray-500" id="authStatusText">Connecting to data...</p>
     </header>
 
-    <div class="mb-6">
-        <input type="text" id="searchBar" placeholder="Search by English or Greek word (e.g., 'see' or 'βλέπω')..."
-               class="search-input w-full p-3 border-2 rounded-lg text-lg focus:outline-none">
+    <!-- Tab Navigation -->
+    <div class="flex border-b-2 border-gray-200 px-6 pt-4 mt-4">
+        <button class="tab-button active" data-tab="search">Search & Conjugation</button>
+        <button class="tab-button" data-tab="all">All Verbs (<span id="totalVerbsCount">41</span>)</button>
+        <button class="tab-button" data-tab="quiz">Quiz Mode</button>
+        <button class="tab-button" data-tab="favorites">Favorites (<span id="favoritesCount">0</span>)</button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Verb List Column (Col 1) -->
-        <div class="lg:col-span-1">
-            <h2 class="text-xl font-semibold mb-3 border-b pb-2">Verbs List</h2>
-            <ul id="verbList" class="space-y-1 rounded-lg border">
-                <!-- Verb items will be injected here -->
-            </ul>
-            <p id="noResults" class="hidden text-center text-red-500 mt-4">No results found.</p>
-        </div>
+    <!-- Tab Content -->
+    <div id="tabContent" class="p-6">
+        <!-- Search & Conjugation Tab -->
+        <div id="search" class="tab-pane">
+            <div class="mb-6">
+                <input type="text" id="searchBar" placeholder="Search by English or Greek word..."
+                       class="w-full p-3 border-2 rounded-lg text-lg focus:outline-none focus:border-primary">
+            </div>
 
-        <!-- Conjugation Display Column (Col 2 & 3) -->
-        <div class="lg:col-span-2">
-            <h2 class="text-xl font-semibold mb-3 border-b pb-2">Conjugation: <span id="currentVerbTitle" class="text-primary font-bold">Select a verb</span></h2>
-            <div id="conjugationDisplay" class="bg-white rounded-lg p-4 shadow-inner border">
-                <p id="verbTranslation" class="text-lg mb-4 italic text-gray-600"></p>
-
-                <div id="presentTense" class="mb-8">
-                    <h3 class="text-xl font-semibold mb-3 text-gray-700 border-b pb-1">Present Tense (Ενεστώτας)</h3>
-                    <div id="presentTenseTable">
-                        <p class="text-gray-500">Please select a verb from the list to see its conjugation.</p>
-                    </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Verb List Column -->
+                <div class="lg:col-span-1">
+                    <h2 class="text-xl font-semibold mb-3 border-b pb-2">Filtered Verbs (<span id="filteredVerbsCount">41</span>)</h2>
+                    <ul id="verbList" class="space-y-1 rounded-lg border">
+                        <!-- Verb items will be injected here -->
+                    </ul>
+                    <p id="noResults" class="hidden text-center text-red-500 mt-4">No results found.</p>
                 </div>
 
-                <div id="pastTense" class="mb-8">
-                    <h3 class="text-xl font-semibold mb-3 text-gray-700 border-b pb-1">Simple Past Tense (Αόριστος)</h3>
-                    <div id="pastTenseTable">
-                        <!-- Past tense conjugation will be injected here -->
+                <!-- Conjugation Display Column -->
+                <div class="lg:col-span-2">
+                    <h2 class="text-xl font-semibold mb-3 border-b pb-2 flex items-center justify-between">
+                        Conjugation: <span id="currentVerbTitle" class="text-primary font-bold">Select a verb</span>
+                        <button id="favoriteToggleBtn" class="favorite-btn text-2xl text-gray-400 hover:text-red-500" title="Add to Favorites" style="display: none;">
+                            <!-- Star Icon (will be dynamically updated) -->
+                        </button>
+                    </h2>
+                    <div id="conjugationDisplay" class="bg-white rounded-lg p-4 shadow-inner border space-y-6">
+                        <p id="verbTranslation" class="text-lg italic text-gray-600 border-b pb-2"></p>
+
+                        <div id="presentTense">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">Present Tense (Ενεστώτας)</h3>
+                        </div>
+                        <div id="simplePastTense">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">Simple Past Tense (Αόριστος)</h3>
+                        </div>
+                        <div id="futureSimpleTense">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">Future Simple (Μέλλοντας Απλός)</h3>
+                        </div>
+                         <div id="imperativeMood">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">Imperative Mood (Προστακτική)</h3>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- All Verbs Tab (Similar to Search, but unfilterable) -->
+        <div id="all" class="tab-pane hidden">
+             <h2 class="text-2xl font-semibold mb-4">Complete Verb List</h2>
+             <ul id="allVerbList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <!-- Full list of verbs rendered here -->
+             </ul>
+        </div>
+
+        <!-- Quiz Tab -->
+        <div id="quiz" class="tab-pane hidden max-w-2xl mx-auto">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Conjugation Quiz</h2>
+            <div id="quizContainer" class="p-6 border rounded-lg shadow-md bg-gray-50 space-y-6">
+                <p id="quizQuestion" class="text-xl font-medium text-center">Loading Quiz...</p>
+                <div id="quizOptions" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Quiz buttons here -->
+                </div>
+                <div id="quizFeedback" class="text-center font-bold text-lg h-8"></div>
+                <button id="nextQuestionBtn" class="w-full bg-secondary text-white p-3 rounded-lg font-bold hover:bg-green-700 transition" disabled>Next Question</button>
+            </div>
+        </div>
+
+        <!-- Favorites Tab -->
+        <div id="favorites" class="tab-pane hidden">
+            <h2 class="text-2xl font-semibold mb-4">My Favorite Verbs</h2>
+            <p id="favoritesStatus" class="text-gray-500 mb-4">Loading favorites...</p>
+            <ul id="favoritesList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <!-- Favorite verb chips will be inserted here -->
+            </ul>
         </div>
     </div>
 </div>
 
 <script type="module">
-    // --- Data: The core list of 41 Greek verbs (Expanded from 15) ---
+    // Re-importing necessary functions for the main script scope
+    import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Call Firebase initialization immediately
+    window.initFirebase();
+
+    // --- Data: The core list of 41 Greek verbs (Expanded & updated with Future/Imperative) ---
     const sampleVerbs = [
-        { greek: "είμαι", english: "to be", present: ["είμαι", "είσαι", "είναι", "είμαστε", "είστε", "είναι"], past: ["ήμουν", "ήσουν", "ήταν", "ήμασταν", "ήσασταν", "ήταν"] },
-        { greek: "έχω", english: "to have", present: ["έχω", "έχεις", "έχει", "έχουμε", "έχετε", "έχουν"], past: ["είχα", "είχες", "είχε", "είχαμε", "είχατε", "είχαν"] },
-        { greek: "κάνω", english: "to do / to make", present: ["κάνω", "κάνεις", "κάνει", "κάνουμε", "κάνετε", "κάνουν"], past: ["έκανα", "έκανες", "έκανε", "κάναμε", "κάνατε", "έκαναν"] },
-        { greek: "πηγαίνω", english: "to go", present: ["πηγαίνω", "πηγαίνεις", "πηγαίνει", "πηγαίνουμε", "πηγαίνετε", "πηγαίνουν"], past: ["πήγα", "πήγες", "πήγε", "πήγαμε", "πήγατε", "πήγαν"] },
-        { greek: "λέω", english: "to say / to tell", present: ["λέω", "λες", "λέει", "λέμε", "λέτε", "λένε"], past: ["είπα", "είπες", "είπε", "είπαμε", "είπατε", "είπαν"] },
-        { greek: "βλέπω", english: "to see", present: ["βλέπω", "βλέπεις", "βλέπει", "βλέπουμε", "βλέπετε", "βλέπουν"], past: ["είδα", "είδες", "είδε", "είδαμε", "είδατε", "είδαν"] },
-        { greek: "ξέρω", english: "to know (fact/info)", present: ["ξέρω", "ξέρεις", "ξέρει", "ξέρουμε", "ξέρετε", "ξέρουν"], past: ["ήξερα", "ήξερες", "ήξερε", "ήξεραμε", "ήξερατε", "ήξεραν"] },
-        { greek: "θέλω", english: "to want", present: ["θέλω", "θέλεις", "θέλει", "θέλουμε", "θέλετε", "θέλουν"], past: ["ήθελα", "ήθελες", "ήθελε", "θέλαμε", "θέλατε", "ήθελαν"] },
-        { greek: "μπορώ", english: "to be able to / can", present: ["μπορώ", "μπορείς", "μπορεί", "μπορούμε", "μπορείτε", "μπορούν"], past: ["μπόρεσα", "μπόρεσες", "μπόρεσε", "μπορέσαμε", "μπορέσατε", "μπόρεσαν"] },
-        { greek: "τρώω", english: "to eat", present: ["τρώω", "τρως", "τρώει", "τρώμε", "τρώτε", "τρώνε"], past: ["έφαγα", "έφαγες", "έφαγε", "φάγαμε", "φάγατε", "έφαγαν"] },
-        { greek: "πίνω", english: "to drink", present: ["πίνω", "πίνεις", "πίνει", "πίνουμε", "πίνετε", "πίνουν"], past: ["ήπια", "ήπιες", "ήπιε", "ήπιαμε", "ήπιατε", "ήπιαν"] },
-        { greek: "αγαπώ", english: "to love", present: ["αγαπώ", "αγαπάς", "αγαπά", "αγαπάμε", "αγαπάτε", "αγαπούν"], past: ["αγάπησα", "αγάπησες", "αγάπησε", "αγαπήσαμε", "αγαπήσατε", "αγάπησαν"] },
-        { greek: "μένω", english: "to stay / to live (reside)", present: ["μένω", "μένεις", "μένει", "μένουμε", "μένετε", "μένουν"], past: ["έμεινα", "έμεινες", "έμεινε", "μείναμε", "μείνατε", "έμειναν"] },
-        { greek: "δουλεύω", english: "to work", present: ["δουλεύω", "δουλεύεις", "δουλεύει", "δουλεύουμε", "δουλεύετε", "δουλεύουν"], past: ["δούλεψα", "δούλεψες", "δούλεψε", "δουλέψαμε", "δουλέψατε", "δούλεψαν"] },
-        { greek: "καταλαβαίνω", english: "to understand", present: ["καταλαβαίνω", "καταλαβαίνεις", "καταλαβαίνει", "καταλαβαίνουμε", "καταλαβαίνετε", "καταλαβαίνουν"], past: ["κατάλαβα", "κατάλαβες", "κατάλαβε", "καταλάβαμε", "καταλάβατε", "κατάλαβαν"] },
-        { greek: "έρχομαι", english: "to come", present: ["έρχομαι", "έρχεσαι", "έρχεται", "ερχόμαστε", "έρχεστε", "έρχονται"], past: ["ήρθα", "ήρθες", "ήρθε", "ήρθαμε", "ήρθατε", "ήρθαν"] },
-        { greek: "δίνω", english: "to give", present: ["δίνω", "δίνεις", "δίνει", "δίνουμε", "δίνετε", "δίνουν"], past: ["έδωσα", "έδωσες", "έδωσε", "δώσαμε", "δώσατε", "έδωσαν"] },
-        { greek: "παίρνω", english: "to take", present: ["παίρνω", "παίρνεις", "παίρνει", "παίρνουμε", "παίρνετε", "παίρνουν"], past: ["πήρα", "πήρες", "πήρε", "πήραμε", "πήρατε", "πήραν"] },
-        { greek: "βάζω", english: "to put", present: ["βάζω", "βάζεις", "βάζει", "βάζουμε", "βάζετε", "βάζουν"], past: ["έβαλα", "έβαλες", "έβαλε", "βάλαμε", "βάλατε", "έβαλαν"] },
-        { greek: "βγάζω", english: "to take out / to remove", present: ["βγάζω", "βγάζεις", "βγάζει", "βγάζουμε", "βγάζετε", "βγάζουν"], past: ["έβγαλα", "έβγαλες", "έβγαλε", "βγάλαμε", "βγάλατε", "έβγαλαν"] },
-        { greek: "ακούω", english: "to hear / to listen", present: ["ακούω", "ακούς", "ακούει", "ακούμε", "ακούτε", "ακούνε"], past: ["άκουσα", "άκουσες", "άκουσε", "ακούσαμε", "ακούσατε", "άκουσαν"] },
-        { greek: "περιμένω", english: "to wait", present: ["περιμένω", "περιμένεις", "περιμένει", "περιμένουμε", "περιμένετε", "περιμένουν"], past: ["περίμενα", "περίμενες", "περίμενε", "περιμέναμε", "περιμένατε", "περίμεναν"] },
-        { greek: "ρωτάω", english: "to ask", present: ["ρωτάω", "ρωτάς", "ρωτάει", "ρωτάμε", "ρωτάτε", "ρωτάνε"], past: ["ρώτησα", "ρώτησες", "ρώτησε", "ρωτήσαμε", "ρωτήσατε", "ρώτησαν"] },
-        { greek: "απαντάω", english: "to answer", present: ["απαντάω", "απαντάς", "απαντάει", "απαντάμε", "απαντάτε", "απαντάνε"], past: ["απάντησα", "απάντησες", "απάντησε", "απαντήσαμε", "απαντήσατε", "απάντησαν"] },
-        { greek: "βρίσκω", english: "to find", present: ["βρίσκω", "βρίσκεις", "βρίσκει", "βρίσκουμε", "βρίσκετε", "βρίσκουν"], past: ["βρήκα", "βρήκες", "βρήκε", "βρήκαμε", "βρήκατε", "βρήκαν"] },
-        { greek: "χρειάζομαι", english: "to need", present: ["χρειάζομαι", "χρειάζεσαι", "χρειάζεται", "χρειαζόμαστε", "χρειάζεστε", "χρειάζονται"], past: ["χρειάστηκα", "χρειάστηκες", "χρειάστηκε", "χρειαστήκαμε", "χρειαστήκατε", "χρειάστηκαν"] },
-        { greek: "αρχίζω", english: "to start / to begin", present: ["αρχίζω", "αρχίζεις", "αρχίζει", "αρχίζουμε", "αρχίζετε", "αρχίζουν"], past: ["άρχισα", "άρχισες", "άρχισε", "αρχίσαμε", "αρχίσατε", "άρχισαν"] },
-        { greek: "τελειώνω", english: "to finish", present: ["τελειώνω", "τελειώνεις", "τελειώνει", "τελειώνουμε", "τελειώνετε", "τελειώνουν"], past: ["τελείωσα", "τελείωσες", "τελείωσε", "τελειώσαμε", "τελειώσατε", "τελείωσαν"] },
-        { greek: "πληρώνω", english: "to pay", present: ["πληρώνω", "πληρώνεις", "πληρώνει", "πληρώνουμε", "πληρώνετε", "πληρώνουν"], past: ["πλήρωσα", "πλήρωσες", "πλήρωσε", "πληρώσαμε", "πληρώσατε", "πλήρωσαν"] },
-        { greek: "μαθαίνω", english: "to learn", present: ["μαθαίνω", "μαθαίνεις", "μαθαίνει", "μαθαίνουμε", "μαθαίνετε", "μαθαίνουν"], past: ["έμαθα", "έμαθες", "έμαθε", "μάθαμε", "μάθατε", "έμαθαν"] },
-        { greek: "διδάσκω", english: "to teach", present: ["διδάσκω", "διδάσκεις", "διδάσκει", "διδάσκουμε", "διδάσκετε", "διδάσκουν"], past: ["δίδαξα", "δίδαξες", "δίδαξε", "διδάξαμε", "διδάξατε", "δίδαξαν"] },
-        { greek: "αγοράζω", english: "to buy", present: ["αγοράζω", "αγοράζεις", "αγοράζει", "αγοράζουμε", "αγοράζετε", "αγοράζουν"], past: ["αγόρασα", "αγόρασες", "αγόρασε", "αγοράσαμε", "αγοράσατε", "αγόρασαν"] },
-        { greek: "πουλώ", english: "to sell", present: ["πουλώ", "πουλάς", "πουλάει", "πουλάμε", "πουλάτε", "πουλούν"], past: ["πούλησα", "πούλησες", "πούλησε", "πουλήσαμε", "πουλήσατε", "πούλησαν"] },
-        { greek: "ζω", english: "to live (be alive)", present: ["ζω", "ζεις", "ζει", "ζούμε", "ζείτε", "ζουν"], past: ["έζησα", "έζησες", "έζησε", "ζήσαμε", "ζήσατε", "έζησαν"] },
-        { greek: "κοιμάμαι", english: "to sleep", present: ["κοιμάμαι", "κοιμάσαι", "κοιμάται", "κοιμόμαστε", "κοιμάστε", "κοιμούνται"], past: ["κοιμήθηκα", "κοιμήθηκες", "κοιμήθηκε", "κοιμηθήκαμε", "κοιμηθήκατε", "κοιμήθηκαν"] },
-        { greek: "ξυπνάω", english: "to wake up", present: ["ξυπνάω", "ξυπνάς", "ξυπνάει", "ξυπνάμε", "ξυπνάτε", "ξυπνάνε"], past: ["ξύπνησα", "ξύπνησες", "ξύπνησε", "ξυπνήσαμε", "ξυπνήσατε", "ξύπνησαν"] },
-        { greek: "ταξιδεύω", english: "to travel", present: ["ταξιδεύω", "ταξιδεύεις", "ταξιδεύει", "ταξιδεύουμε", "ταξιδεύετε", "ταξιδεύουν"], past: ["ταξίδεψα", "ταξίδεψες", "ταξίδεψε", "ταξιδέψαμε", "ταξιδέψατε", "ταξίδεψαν"] },
-        { greek: "γράφω", english: "to write", present: ["γράφω", "γράφεις", "γράφει", "γράφουμε", "γράφετε", "γράφουν"], past: ["έγραψα", "έγραψες", "έγραψε", "γράψαμε", "γράψατε", "έγραψαν"] },
-        { greek: "διαβάζω", english: "to read", present: ["διαβάζω", "διαβάζεις", "διαβάζει", "διαβάζουμε", "διαβάζετε", "διαβάζουν"], past: ["διάβασα", "διάβασες", "διάβασε", "διαβάσαμε", "διαβάσατε", "διάβασαν"] },
-        { greek: "τρέχω", english: "to run", present: ["τρέχω", "τρέχεις", "τρέχει", "τρέχουμε", "τρέχετε", "τρέχουν"], past: ["έτρεξα", "έτρεξες", "έτρεξε", "τρέξαμε", "τρέξατε", "έτρεξαν"] },
-        { greek: "χορεύω", english: "to dance", present: ["χορεύω", "χορεύεις", "χορεύει", "χορεύουμε", "χορεύετε", "χορεύουν"], past: ["χόρεψα", "χόρεψες", "χόρεψε", "χορέψαμε", "χορέψατε", "χόρεψαν"] }
+        // Added Future Tense (Simple Future / Υποτακτική) and Imperative (Προστακτική) forms
+        { greek: "είμαι", english: "to be", present: ["είμαι", "είσαι", "είναι", "είμαστε", "είστε", "είναι"], past: ["ήμουν", "ήσουν", "ήταν", "ήμασταν", "ήσασταν", "ήταν"], future: ["θα είμαι", "θα είσαι", "θα είναι", "θα είμαστε", "θα είστε", "θα είναι"], imperative: ["να είσαι", "να είναι", "", "να είμαστε", "να είστε", "να είναι"] },
+        { greek: "έχω", english: "to have", present: ["έχω", "έχεις", "έχει", "έχουμε", "έχετε", "έχουν"], past: ["είχα", "είχες", "είχε", "είχαμε", "είχατε", "είχαν"], future: ["θα έχω", "θα έχεις", "θα έχει", "θα έχουμε", "θα έχετε", "θα έχουν"], imperative: ["έχε", "ας έχει", "", "ας έχουμε", "έχετε", "ας έχουν"] },
+        { greek: "κάνω", english: "to do / to make", present: ["κάνω", "κάνεις", "κάνει", "κάνουμε", "κάνετε", "κάνουν"], past: ["έκανα", "έκανες", "έκανε", "κάναμε", "κάνατε", "έκαναν"], future: ["θα κάνω", "θα κάνεις", "θα κάνει", "θα κάνουμε", "θα κάνετε", "θα κάνουν"], imperative: ["κάνε", "ας κάνει", "", "ας κάνουμε", "κάνετε", "ας κάνουν"] },
+        { greek: "πηγαίνω", english: "to go", present: ["πηγαίνω", "πηγαίνεις", "πηγαίνει", "πηγαίνουμε", "πηγαίνετε", "πηγαίνουν"], past: ["πήγα", "πήγες", "πήγε", "πήγαμε", "πήγατε", "πήγαν"], future: ["θα πάω", "θα πας", "θα πάει", "θα πάμε", "θα πάτε", "θα πάνε"], imperative: ["πήγαινε", "ας πάει", "", "ας πάμε", "πηγαίνετε", "ας πάνε"] },
+        { greek: "λέω", english: "to say / to tell", present: ["λέω", "λες", "λέει", "λέμε", "λέτε", "λένε"], past: ["είπα", "είπες", "είπε", "είπαμε", "είπατε", "είπαν"], future: ["θα πω", "θα πεις", "θα πει", "θα πούμε", "θα πείτε", "θα πουν"], imperative: ["πες", "ας πει", "", "ας πούμε", "πείτε", "ας πουν"] },
+        { greek: "βλέπω", english: "to see", present: ["βλέπω", "βλέπεις", "βλέπει", "βλέπουμε", "βλέπετε", "βλέπουν"], past: ["είδα", "είδες", "είδε", "είδαμε", "είδατε", "είδαν"], future: ["θα δω", "θα δεις", "θα δει", "θα δούμε", "θα δείτε", "θα δουν"], imperative: ["δες", "ας δει", "", "ας δούμε", "δείτε", "ας δουν"] },
+        { greek: "ξέρω", english: "to know (fact/info)", present: ["ξέρω", "ξέρεις", "ξέρει", "ξέρουμε", "ξέρετε", "ξέρουν"], past: ["ήξερα", "ήξερες", "ήξερε", "ήξεραμε", "ήξερατε", "ήξεραν"], future: ["θα ξέρω", "θα ξέρεις", "θα ξέρει", "θα ξέρουμε", "θα ξέρετε", "θα ξέρουν"], imperative: ["ξέρε", "ας ξέρει", "", "ας ξέρουμε", "ξέρετε", "ας ξέρουν"] },
+        { greek: "θέλω", english: "to want", present: ["θέλω", "θέλεις", "θέλει", "θέλουμε", "θέλετε", "θέλουν"], past: ["ήθελα", "ήθελες", "ήθελε", "θέλαμε", "θέλατε", "ήθελαν"], future: ["θα θέλω", "θα θέλεις", "θα θέλει", "θα θέλουμε", "θα θέλετε", "θα θέλουν"], imperative: ["θέλε", "ας θέλει", "", "ας θέλουμε", "θέλετε", "ας θέλουν"] },
+        { greek: "μπορώ", english: "to be able to / can", present: ["μπορώ", "μπορείς", "μπορεί", "μπορούμε", "μπορείτε", "μπορούν"], past: ["μπόρεσα", "μπόρεσες", "μπόρεσε", "μπορέσαμε", "μπορέσατε", "μπόρεσαν"], future: ["θα μπορέσω", "θα μπορέσεις", "θα μπορέσει", "θα μπορέσουμε", "θα μπορέσετε", "θα μπορέσουν"], imperative: ["μπορέσε", "ας μπορέσει", "", "ας μπορέσουμε", "μπορέστε", "ας μπορέσουν"] },
+        { greek: "τρώω", english: "to eat", present: ["τρώω", "τρως", "τρώει", "τρώμε", "τρώτε", "τρώνε"], past: ["έφαγα", "έφαγες", "έφαγε", "φάγαμε", "φάγατε", "έφαγαν"], future: ["θα φάω", "θα φας", "θα φάει", "θα φάμε", "θα φάτε", "θα φάνε"], imperative: ["φάε", "ας φάει", "", "ας φάμε", "φάτε", "ας φάνε"] },
+        { greek: "πίνω", english: "to drink", present: ["πίνω", "πίνεις", "πίνει", "πίνουμε", "πίνετε", "πίνουν"], past: ["ήπια", "ήπιες", "ήπιε", "ήπιαμε", "ήπιατε", "ήπιαν"], future: ["θα πιω", "θα πιείς", "θα πιεί", "θα πιούμε", "θα πιείτε", "θα πιούν"], imperative: ["πιες", "ας πιεί", "", "ας πιούμε", "πιείτε", "ας πιούν"] },
+        { greek: "αγαπώ", english: "to love", present: ["αγαπώ", "αγαπάς", "αγαπά", "αγαπάμε", "αγαπάτε", "αγαπούν"], past: ["αγάπησα", "αγάπησες", "αγάπησε", "αγαπήσαμε", "αγαπήσατε", "αγάπησαν"], future: ["θα αγαπήσω", "θα αγαπήσεις", "θα αγαπήσει", "θα αγαπήσουμε", "θα αγαπήσετε", "θα αγαπήσουν"], imperative: ["αγάπησε", "ας αγαπήσει", "", "ας αγαπήσουμε", "αγαπήστε", "ας αγαπήσουν"] },
+        { greek: "μένω", english: "to stay / to live (reside)", present: ["μένω", "μένεις", "μένει", "μένουμε", "μένετε", "μένουν"], past: ["έμεινα", "έμεινες", "έμεινε", "μείναμε", "μείνατε", "έμειναν"], future: ["θα μείνω", "θα μείνεις", "θα μείνει", "θα μείνουμε", "θα μείνετε", "θα μείνουν"], imperative: ["μείνε", "ας μείνει", "", "ας μείνουμε", "μείνετε", "ας μείνουν"] },
+        { greek: "δουλεύω", english: "to work", present: ["δουλεύω", "δουλεύεις", "δουλεύει", "δουλεύουμε", "δουλεύετε", "δουλεύουν"], past: ["δούλεψα", "δούλεψες", "δούλεψε", "δουλέψαμε", "δουλέψατε", "δούλεψαν"], future: ["θα δουλέψω", "θα δουλέψεις", "θα δουλέψει", "θα δουλέψουμε", "θα δουλέψετε", "θα δουλέψουν"], imperative: ["δούλεψε", "ας δουλέψει", "", "ας δουλέψουμε", "δουλέψτε", "ας δουλέψουν"] },
+        { greek: "καταλαβαίνω", english: "to understand", present: ["καταλαβαίνω", "καταλαβαίνεις", "καταλαβαίνει", "καταλαβαίνουμε", "καταλαβαίνετε", "καταλαβαίνουν"], past: ["κατάλαβα", "κατάλαβες", "κατάλαβε", "καταλάβαμε", "καταλάβατε", "κατάλαβαν"], future: ["θα καταλάβω", "θα καταλάβεις", "θα καταλάβει", "θα καταλάβουμε", "θα καταλάβετε", "θα καταλάβουν"], imperative: ["κατάλαβε", "ας καταλάβει", "", "ας καταλάβουμε", "καταλάβετε", "ας καταλάβουν"] },
+        { greek: "έρχομαι", english: "to come", present: ["έρχομαι", "έρχεσαι", "έρχεται", "ερχόμαστε", "έρχεστε", "έρχονται"], past: ["ήρθα", "ήρθες", "ήρθε", "ήρθαμε", "ήρθατε", "ήρθαν"], future: ["θα έρθω", "θα έρθεις", "θα έρθει", "θα έρθουμε", "θα έρθετε", "θα έρθουν"], imperative: ["έλα", "ας έρθει", "", "ας έρθουμε", "ελάτε", "ας έρθουν"] },
+        { greek: "δίνω", english: "to give", present: ["δίνω", "δίνεις", "δίνει", "δίνουμε", "δίνετε", "δίνουν"], past: ["έδωσα", "έδωσες", "έδωσε", "δώσαμε", "δώσατε", "έδωσαν"], future: ["θα δώσω", "θα δώσεις", "θα δώσει", "θα δώσουμε", "θα δώσετε", "θα δώσουν"], imperative: ["δώσε", "ας δώσει", "", "ας δώσουμε", "δώστε", "ας δώσουν"] },
+        { greek: "παίρνω", english: "to take", present: ["παίρνω", "παίρνεις", "παίρνει", "παίρνουμε", "παίρνετε", "παίρνουν"], past: ["πήρα", "πήρες", "πήρε", "πήραμε", "πήρατε", "πήραν"], future: ["θα πάρω", "θα πάρεις", "θα πάρει", "θα πάρουμε", "θα πάρετε", "θα πάρουν"], imperative: ["πάρε", "ας πάρει", "", "ας πάρουμε", "πάρτε", "ας πάρουν"] },
+        { greek: "βάζω", english: "to put", present: ["βάζω", "βάζεις", "βάζει", "βάζουμε", "βάζετε", "βάζουν"], past: ["έβαλα", "έβαλες", "έβαλε", "βάλαμε", "βάλατε", "έβαλαν"], future: ["θα βάλω", "θα βάλεις", "θα βάλει", "θα βάλουμε", "θα βάλετε", "θα βάλουν"], imperative: ["βάλε", "ας βάλει", "", "ας βάλουμε", "βάλτε", "ας βάλουν"] },
+        { greek: "βγάζω", english: "to take out / to remove", present: ["βγάζω", "βγάζεις", "βγάζει", "βγάζουμε", "βγάζετε", "βγάζουν"], past: ["έβγαλα", "έβγαλες", "έβγαλε", "βγάλαμε", "βγάλατε", "έβγαλαν"], future: ["θα βγάλω", "θα βγάλεις", "θα βγάλει", "θα βγάλουμε", "θα βγάλετε", "θα βγάλουν"], imperative: ["βγάλε", "ας βγάλει", "", "ας βγάλουμε", "βγάλτε", "ας βγάλουν"] },
+        { greek: "ακούω", english: "to hear / to listen", present: ["ακούω", "ακούς", "ακούει", "ακούμε", "ακούτε", "ακούνε"], past: ["άκουσα", "άκουσες", "άκουσε", "ακούσαμε", "ακούσατε", "άκουσαν"], future: ["θα ακούσω", "θα ακούσεις", "θα ακούσει", "θα ακούσουμε", "θα ακούσετε", "θα ακούσουν"], imperative: ["άκουσε", "ας ακούσει", "", "ας ακούσουμε", "ακούστε", "ας ακούσουν"] },
+        { greek: "περιμένω", english: "to wait", present: ["περιμένω", "περιμένεις", "περιμένει", "περιμένουμε", "περιμένετε", "περιμένουν"], past: ["περίμενα", "περίμενες", "περίμενε", "περιμέναμε", "περιμένατε", "περίμεναν"], future: ["θα περιμένω", "θα περιμένεις", "θα περιμένει", "θα περιμένουμε", "θα περιμένετε", "θα περιμένουν"], imperative: ["περίμενε", "ας περιμένει", "", "ας περιμένουμε", "περιμένετε", "ας περιμένουν"] },
+        { greek: "ρωτάω", english: "to ask", present: ["ρωτάω", "ρωτάς", "ρωτάει", "ρωτάμε", "ρωτάτε", "ρωτάνε"], past: ["ρώτησα", "ρώτησες", "ρώτησε", "ρωτήσαμε", "ρωτήσατε", "ρώτησαν"], future: ["θα ρωτήσω", "θα ρωτήσεις", "θα ρωτήσει", "θα ρωτήσουμε", "θα ρωτήσετε", "θα ρωτήσουν"], imperative: ["ρώτησε", "ας ρωτήσει", "", "ας ρωτήσουμε", "ρωτήστε", "ας ρωτήσουν"] },
+        { greek: "απαντάω", english: "to answer", present: ["απαντάω", "απαντάς", "απαντάει", "απαντάμε", "απαντάτε", "απαντάνε"], past: ["απάντησα", "απάντησες", "απάντησε", "απαντήσαμε", "απαντήσατε", "απάντησαν"], future: ["θα απαντήσω", "θα απαντήσεις", "θα απαντήσει", "θα απαντήσουμε", "θα απαντήσετε", "θα απαντήσουν"], imperative: ["απάντησε", "ας απαντήσει", "", "ας απαντήσουμε", "απαντήστε", "ας απαντήσουν"] },
+        { greek: "βρίσκω", english: "to find", present: ["βρίσκω", "βρίσκεις", "βρίσκει", "βρίσκουμε", "βρίσκετε", "βρίσκουν"], past: ["βρήκα", "βρήκες", "βρήκε", "βρήκαμε", "βρήκατε", "βρήκαν"], future: ["θα βρω", "θα βρεις", "θα βρει", "θα βρούμε", "θα βρείτε", "θα βρουν"], imperative: ["βρες", "ας βρει", "", "ας βρούμε", "βρείτε", "ας βρουν"] },
+        { greek: "χρειάζομαι", english: "to need", present: ["χρειάζομαι", "χρειάζεσαι", "χρειάζεται", "χρειαζόμαστε", "χρειάζεστε", "χρειάζονται"], past: ["χρειάστηκα", "χρειάστηκες", "χρειάστηκε", "χρειαστήκαμε", "χρειαστήκατε", "χρειάστηκαν"], future: ["θα χρειαστώ", "θα χρειαστείς", "θα χρειαστεί", "θα χρειαστούμε", "θα χρειαστείτε", "θα χρειαστούν"], imperative: ["χρειάσου", "ας χρειαστεί", "", "ας χρειαστούμε", "χρειαστείτε", "ας χρειαστούν"] },
+        { greek: "αρχίζω", english: "to start / to begin", present: ["αρχίζω", "αρχίζεις", "αρχίζει", "αρχίζουμε", "αρχίζετε", "αρχίζουν"], past: ["άρχισα", "άρχισες", "άρχισε", "αρχίσαμε", "αρχίσατε", "άρχισαν"], future: ["θα αρχίσω", "θα αρχίσεις", "θα αρχίσει", "θα αρχίσουμε", "θα αρχίσετε", "θα αρχίσουν"], imperative: ["άρχισε", "ας αρχίσει", "", "ας αρχίσουμε", "αρχίστε", "ας αρχίσουν"] },
+        { greek: "τελειώνω", english: "to finish", present: ["τελειώνω", "τελειώνεις", "τελειώνει", "τελειώνουμε", "τελειώνετε", "τελειώνουν"], past: ["τελείωσα", "τελείωσες", "τελείωσε", "τελειώσαμε", "τελειώσατε", "τελείωσαν"], future: ["θα τελειώσω", "θα τελειώσεις", "θα τελειώσει", "θα τελειώσουμε", "θα τελειώσετε", "θα τελειώσουν"], imperative: ["τελείωσε", "ας τελειώσει", "", "ας τελειώσουμε", "τελειώστε", "ας τελειώσουν"] },
+        { greek: "πληρώνω", english: "to pay", present: ["πληρώνω", "πληρώνεις", "πληρώνει", "πληρώνουμε", "πληρώνετε", "πληρώνουν"], past: ["πλήρωσα", "πλήρωσες", "πλήρωσε", "πληρώσαμε", "πληρώσατε", "πλήρωσαν"], future: ["θα πληρώσω", "θα πληρώσεις", "θα πληρώσει", "θα πληρώσουμε", "θα πληρώσετε", "θα πληρώσουν"], imperative: ["πλήρωσε", "ας πληρώσει", "", "ας πληρώσουμε", "πληρώστε", "ας πληρώσουν"] },
+        { greek: "μαθαίνω", english: "to learn", present: ["μαθαίνω", "μαθαίνεις", "μαθαίνει", "μαθαίνουμε", "μαθαίνετε", "μαθαίνουν"], past: ["έμαθα", "έμαθες", "έμαθε", "μάθαμε", "μάθατε", "έμαθαν"], future: ["θα μάθω", "θα μάθεις", "θα μάθει", "θα μάθουμε", "θα μάθετε", "θα μάθουν"], imperative: ["μάθε", "ας μάθει", "", "ας μάθουμε", "μάθετε", "ας μάθουν"] },
+        { greek: "διδάσκω", english: "to teach", present: ["διδάσκω", "διδάσκεις", "διδάσκει", "διδάσκουμε", "διδάσκετε", "διδάσκουν"], past: ["δίδαξα", "δίδαξες", "δίδαξε", "διδάξαμε", "διδάξατε", "δίδαξαν"], future: ["θα διδάξω", "θα διδάξεις", "θα διδάξει", "θα διδάξουμε", "θα διδάξετε", "θα διδάξουν"], imperative: ["δίδαξε", "ας διδάξει", "", "ας διδάξουμε", "διδάξτε", "ας διδάξουν"] },
+        { greek: "αγοράζω", english: "to buy", present: ["αγοράζω", "αγοράζεις", "αγοράζει", "αγοράζουμε", "αγοράζετε", "αγοράζουν"], past: ["αγόρασα", "αγόρασες", "αγόρασε", "αγοράσαμε", "αγοράσατε", "αγόρασαν"], future: ["θα αγοράσω", "θα αγοράσεις", "θα αγοράσει", "θα αγοράσουμε", "θα αγοράσετε", "θα αγοράσουν"], imperative: ["αγόρασε", "ας αγοράσει", "", "ας αγοράσουμε", "αγοράστε", "ας αγοράσουν"] },
+        { greek: "πουλώ", english: "to sell", present: ["πουλώ", "πουλάς", "πουλάει", "πουλάμε", "πουλάτε", "πουλούν"], past: ["πούλησα", "πούλησες", "πούλησε", "πουλήσαμε", "πουλήσατε", "πούλησαν"], future: ["θα πουλήσω", "θα πουλήσεις", "θα πουλήσει", "θα πουλήσουμε", "θα πουλήσετε", "θα πουλήσουν"], imperative: ["πούλησε", "ας πουλήσει", "", "ας πουλήσουμε", "πουλήστε", "ας πουλήσουν"] },
+        { greek: "ζω", english: "to live (be alive)", present: ["ζω", "ζεις", "ζει", "ζούμε", "ζείτε", "ζουν"], past: ["έζησα", "έζησες", "έζησε", "ζήσαμε", "ζήσατε", "έζησαν"], future: ["θα ζήσω", "θα ζήσεις", "θα ζήσει", "θα ζήσουμε", "θα ζήσετε", "θα ζήσουν"], imperative: ["ζήσε", "ας ζήσει", "", "ας ζήσουμε", "ζήστε", "ας ζήσουν"] },
+        { greek: "κοιμάμαι", english: "to sleep", present: ["κοιμάμαι", "κοιμάσαι", "κοιμάται", "κοιμόμαστε", "κοιμάστε", "κοιμούνται"], past: ["κοιμήθηκα", "κοιμήθηκες", "κοιμήθηκε", "κοιμηθήκαμε", "κοιμηθήκατε", "κοιμήθηκαν"], future: ["θα κοιμηθώ", "θα κοιμηθείς", "θα κοιμηθεί", "θα κοιμηθούμε", "θα κοιμηθείτε", "θα κοιμηθούν"], imperative: ["κοιμήσου", "ας κοιμηθεί", "", "ας κοιμηθούμε", "κοιμηθείτε", "ας κοιμηθούν"] },
+        { greek: "ξυπνάω", english: "to wake up", present: ["ξυπνάω", "ξυπνάς", "ξυπνάει", "ξυπνάμε", "ξυπνάτε", "ξυπνάνε"], past: ["ξύπνησα", "ξύπνησες", "ξύπνησε", "ξυπνήσαμε", "ξυπνήσατε", "ξύπνησαν"], future: ["θα ξυπνήσω", "θα ξυπνήσεις", "θα ξυπνήσει", "θα ξυπνήσουμε", "θα ξυπνήσετε", "θα ξυπνήσουν"], imperative: ["ξύπνα", "ας ξυπνήσει", "", "ας ξυπνήσουμε", "ξυπνήστε", "ας ξυπνήσουν"] },
+        { greek: "ταξιδεύω", english: "to travel", present: ["ταξιδεύω", "ταξιδεύεις", "ταξιδεύει", "ταξιδεύουμε", "ταξιδεύετε", "ταξιδεύουν"], past: ["ταξίδεψα", "ταξίδεψες", "ταξίδεψε", "ταξιδέψαμε", "ταξιδέψατε", "ταξίδεψαν"], future: ["θα ταξιδέψω", "θα ταξιδέψεις", "θα ταξιδέψει", "θα ταξιδέψουμε", "θα ταξιδέψετε", "θα ταξιδέψουν"], imperative: ["ταξίδεψε", "ας ταξιδέψει", "", "ας ταξιδέψουμε", "ταξιδέψτε", "ας ταξιδέψουν"] },
+        { greek: "γράφω", english: "to write", present: ["γράφω", "γράφεις", "γράφει", "γράφουμε", "γράφετε", "γράφουν"], past: ["έγραψα", "έγραψες", "έγραψε", "γράψαμε", "γράψατε", "έγραψαν"], future: ["θα γράψω", "θα γράψεις", "θα γράψει", "θα γράψουμε", "θα γράψετε", "θα γράψουν"], imperative: ["γράψε", "ας γράψει", "", "ας γράψουμε", "γράψτε", "ας γράψουν"] },
+        { greek: "διαβάζω", english: "to read", present: ["διαβάζω", "διαβάζεις", "διαβάζει", "διαβάζουμε", "διαβάζετε", "διαβάζουν"], past: ["διάβασα", "διάβασες", "διάβασε", "διαβάσαμε", "διαβάσατε", "διάβασαν"], future: ["θα διαβάσω", "θα διαβάσεις", "θα διαβάσει", "θα διαβάσουμε", "θα διαβάσετε", "θα διαβάσουν"], imperative: ["διάβασε", "ας διαβάσει", "", "ας διαβάσουμε", "διαβάστε", "ας διαβάσουν"] },
+        { greek: "τρέχω", english: "to run", present: ["τρέχω", "τρέχεις", "τρέχει", "τρέχουμε", "τρέχετε", "τρέχουν"], past: ["έτρεξα", "έτρεξες", "έτρεξε", "τρέξαμε", "τρέξατε", "έτρεξαν"], future: ["θα τρέξω", "θα τρέξεις", "θα τρέξει", "θα τρέξουμε", "θα τρέξετε", "θα τρέξουν"], imperative: ["τρέξε", "ας τρέξει", "", "ας τρέξουμε", "τρέξτε", "ας τρέξουν"] },
+        { greek: "χορεύω", english: "to dance", present: ["χορεύω", "χορεύεις", "χορεύει", "χορεύουμε", "χορεύετε", "χορεύουν"], past: ["χόρεψα", "χόρεψες", "χόρεψε", "χορέψαμε", "χορέψατε", "χόρεψαν"], future: ["θα χορέψω", "θα χορέψεις", "θα χορέψει", "θα χορέψουμε", "θα χορέψετε", "θα χορέψουν"], imperative: ["χόρεψε", "ας χορέψει", "", "ας χορέψουμε", "χορέψτε", "ας χορέψουν"] }
     ];
 
     const pronouns = ["Εγώ (I)", "Εσύ (You - singular)", "Αυτός/Αυτή/Αυτό (He/She/It)", "Εμείς (We)", "Εσείς (You - plural/formal)", "Αυτοί/Αυτές/Αυτά (They)"];
     let verbs = [...sampleVerbs];
     let activeVerbIndex = -1;
+    let currentTab = 'search';
 
     // --- DOM Elements ---
-    const verbListEl = document.getElementById('verbList');
-    const searchBarEl = document.getElementById('searchBar');
-    const currentVerbTitleEl = document.getElementById('currentVerbTitle');
-    const verbTranslationEl = document.getElementById('verbTranslation');
-    const presentTenseTableEl = document.getElementById('presentTenseTable');
-    const pastTenseTableEl = document.getElementById('pastTenseTable');
-    const verbCountTextEl = document.getElementById('verbCountText');
-    const noResultsEl = document.getElementById('noResults');
+    const dom = {
+        tabs: document.querySelectorAll('.tab-button'),
+        panes: document.querySelectorAll('.tab-pane'),
+        verbList: document.getElementById('verbList'),
+        allVerbList: document.getElementById('allVerbList'),
+        searchBar: document.getElementById('searchBar'),
+        currentVerbTitle: document.getElementById('currentVerbTitle'),
+        verbTranslation: document.getElementById('verbTranslation'),
+        favoriteToggleBtn: document.getElementById('favoriteToggleBtn'),
+        presentTense: document.getElementById('presentTense'),
+        simplePastTense: document.getElementById('simplePastTense'),
+        futureSimpleTense: document.getElementById('futureSimpleTense'),
+        imperativeMood: document.getElementById('imperativeMood'),
+        filteredVerbsCount: document.getElementById('filteredVerbsCount'),
+        totalVerbsCount: document.getElementById('totalVerbsCount'),
+        noResults: document.getElementById('noResults'),
+        favoritesList: document.getElementById('favoritesList'),
+        favoritesCount: document.getElementById('favoritesCount'),
+        favoritesStatus: document.getElementById('favoritesStatus'),
+        quizContainer: document.getElementById('quizContainer'),
+        quizQuestion: document.getElementById('quizQuestion'),
+        quizOptions: document.getElementById('quizOptions'),
+        quizFeedback: document.getElementById('quizFeedback'),
+        nextQuestionBtn: document.getElementById('nextQuestionBtn'),
+        authStatusText: document.getElementById('authStatusText'),
+    };
+
+    // --- Tab Switching Logic ---
+    function switchTab(tabId) {
+        currentTab = tabId;
+        dom.panes.forEach(pane => pane.classList.add('hidden'));
+        dom.tabs.forEach(tab => tab.classList.remove('active'));
+
+        document.getElementById(tabId).classList.remove('hidden');
+        document.querySelector(`.tab-button[data-tab="${tabId}"]`).classList.add('active');
+
+        // Special render functions for specific tabs
+        if (tabId === 'all') renderFullList(dom.allVerbList, sampleVerbs, true);
+        if (tabId === 'favorites') renderFavorites();
+        if (tabId === 'quiz') startQuiz();
+    }
+
+    dom.tabs.forEach(button => {
+        button.addEventListener('click', () => switchTab(button.getAttribute('data-tab')));
+    });
+
+
+    // --- Shared Rendering Functions ---
 
     /**
      * Generates the HTML table for a given tense and conjugation array.
-     * @param {string[]} conjugationArray - Array of conjugated forms.
-     * @returns {string} The HTML string for the table.
      */
-    function createConjugationTable(conjugationArray) {
-        let tableHtml = '<table class="conjugation-table rounded-lg shadow-md overflow-hidden">';
+    function createConjugationTable(conjugationArray, title, elementId) {
+        let tableHtml = `
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">${title}</h3>
+            <table class="conjugation-table rounded-lg shadow-md overflow-hidden">
+        `;
         tableHtml += '<thead><tr><th class="person-col">Person/Pronoun</th><th>Conjugation</th></tr></thead><tbody>';
 
         pronouns.forEach((pronoun, index) => {
-            const verbForm = conjugationArray[index] || 'N/A';
+            const verbForm = conjugationArray[index] || '—';
             tableHtml += `
                 <tr>
                     <td class="person-col">${pronoun}</td>
@@ -228,116 +427,295 @@
         });
 
         tableHtml += '</tbody></table>';
-        return tableHtml;
+
+        const container = document.getElementById(elementId);
+        if (container) container.innerHTML = tableHtml;
     }
 
     /**
      * Renders the conjugation details for the currently selected verb.
-     * @param {number} index - The index of the verb in the current `verbs` array.
      */
-    function renderConjugation(index) {
-        if (index === -1) {
-            currentVerbTitleEl.textContent = 'Select a verb';
-            verbTranslationEl.textContent = '';
-            presentTenseTableEl.innerHTML = '<p class="text-gray-500">Please select a verb from the list to see its conjugation.</p>';
-            pastTenseTableEl.innerHTML = '';
+    function renderConjugation(verb) {
+        if (!verb) {
+            dom.currentVerbTitle.textContent = 'Select a verb';
+            dom.verbTranslation.textContent = '';
+            dom.favoriteToggleBtn.style.display = 'none';
+            dom.presentTense.innerHTML = '<p class="text-gray-500">Please select a verb from the list to see its conjugation.</p>';
+            dom.simplePastTense.innerHTML = '';
+            dom.futureSimpleTense.innerHTML = '';
+            dom.imperativeMood.innerHTML = '';
             return;
         }
 
-        const verb = verbs[index];
-        activeVerbIndex = index;
+        dom.currentVerbTitle.textContent = `${verb.greek} (${verb.english})`;
+        dom.verbTranslation.textContent = `Meaning: ${verb.english}`;
 
-        currentVerbTitleEl.textContent = `${verb.greek} (${verb.english})`;
-        verbTranslationEl.textContent = `Meaning: ${verb.english}`;
+        // 1. Tenses
+        createConjugationTable(verb.present, 'Present Tense (Ενεστώτας)', 'presentTense');
+        createConjugationTable(verb.past, 'Simple Past Tense (Αόριστος)', 'simplePastTense');
+        createConjugationTable(verb.future, 'Future Simple (Μέλλοντας Απλός)', 'futureSimpleTense');
+        createConjugationTable(verb.imperative, 'Imperative Mood (Προστακτική)', 'imperativeMood');
 
-        // Render Present Tense
-        presentTenseTableEl.innerHTML = createConjugationTable(verb.present);
+        // 2. Favorite Button
+        dom.favoriteToggleBtn.style.display = 'inline-block';
+        const isFav = window.favorites.includes(verb.greek);
+        dom.favoriteToggleBtn.innerHTML = isFav ? '&#9733;' : '&#9734;'; // Star or Outline
+        dom.favoriteToggleBtn.classList.toggle('text-yellow-500', isFav);
+        dom.favoriteToggleBtn.classList.toggle('text-gray-400', !isFav);
+        dom.favoriteToggleBtn.setAttribute('data-verb', verb.greek);
+    }
 
-        // Render Simple Past Tense
-        pastTenseTableEl.innerHTML = createConjugationTable(verb.past);
+    // --- Search & All Verbs Logic ---
 
-        // Update active class in list
-        document.querySelectorAll('.verb-item').forEach((item, i) => {
-            item.classList.remove('active-verb');
-            if (i === index) {
-                item.classList.add('active-verb');
+    function renderFullList(targetElement, list, clickable) {
+        targetElement.innerHTML = '';
+        list.forEach((verb, index) => {
+            const listItem = document.createElement('li');
+            listItem.className = `p-3 border rounded-lg shadow-sm text-center bg-gray-50 hover:bg-gray-100 transition duration-150 ${clickable ? 'cursor-pointer' : ''}`;
+            listItem.innerHTML = `<span class="font-medium text-lg">${verb.greek}</span> <span class="text-gray-500 text-sm italic block">(${verb.english})</span>`;
+
+            if (clickable) {
+                 listItem.addEventListener('click', () => {
+                    const verbIndex = sampleVerbs.findIndex(v => v.greek === verb.greek);
+                    renderConjugation(sampleVerbs[verbIndex]);
+                    switchTab('search'); // Switch to the conjugation tab
+
+                    // Highlight in the Search list if available
+                    const searchItem = dom.verbList.querySelector(`[data-greek="${verb.greek}"]`);
+                    if (searchItem) {
+                        document.querySelectorAll('.verb-item').forEach(item => item.classList.remove('active-verb'));
+                        searchItem.classList.add('active-verb');
+                        // Update activeVerbIndex for the search list based on the full list index
+                        activeVerbIndex = verbs.findIndex(v => v.greek === verb.greek);
+                    }
+                });
             }
+            targetElement.appendChild(listItem);
         });
     }
 
-    /**
-     * Renders the list of verbs based on the current `verbs` array.
-     */
-    function renderAllVerbs() {
-        verbListEl.innerHTML = '';
-        activeVerbIndex = -1; // Reset active selection
-        renderConjugation(-1); // Clear conjugation display
+    function renderFilteredList() {
+        dom.verbList.innerHTML = '';
+        // If the current verb is not in the new filtered list, clear display.
+        if (activeVerbIndex === -1 || !verbs.includes(sampleVerbs.find(v => v.greek === verbs[activeVerbIndex].greek))) {
+            activeVerbIndex = -1;
+            renderConjugation(null); // Clear conjugation display
+        }
 
         if (verbs.length === 0) {
-            noResultsEl.classList.remove('hidden');
-            verbCountTextEl.textContent = `Total Verbs: ${sampleVerbs.length} | Showing: 0`;
+            dom.noResults.classList.remove('hidden');
+            dom.filteredVerbsCount.textContent = '0';
             return;
         }
 
-        noResultsEl.classList.add('hidden');
+        dom.noResults.classList.add('hidden');
 
         verbs.forEach((verb, index) => {
             const listItem = document.createElement('li');
-            listItem.className = 'verb-item p-3 border-b last:border-b-0 rounded-lg lg:rounded-none';
+            listItem.className = 'verb-item p-3 border-b last:border-b-0 rounded-lg lg:rounded-none cursor-pointer';
             listItem.innerHTML = `<span class="font-medium text-lg">${verb.greek}</span> <span class="text-gray-500 text-sm italic">(${verb.english})</span>`;
             listItem.setAttribute('data-index', index);
+            listItem.setAttribute('data-greek', verb.greek);
 
-            // Add click listener
-            listItem.addEventListener('click', (e) => {
-                const clickedIndex = parseInt(e.currentTarget.getAttribute('data-index'));
-                renderConjugation(clickedIndex);
+            listItem.addEventListener('click', () => {
+                document.querySelectorAll('.verb-item').forEach(item => item.classList.remove('active-verb'));
+                listItem.classList.add('active-verb');
+
+                activeVerbIndex = index;
+                const clickedVerb = verbs[index];
+                renderConjugation(clickedVerb);
             });
 
-            verbListEl.appendChild(listItem);
+            dom.verbList.appendChild(listItem);
         });
 
-        verbCountTextEl.textContent = `Total Verbs: ${sampleVerbs.length} | Showing: ${verbs.length}`;
+        // Re-highlight if the active verb is still in the list
+        if (activeVerbIndex !== -1 && verbs[activeVerbIndex]) {
+            const currentGreek = verbs[activeVerbIndex].greek;
+            const itemToHighlight = dom.verbList.querySelector(`[data-greek="${currentGreek}"]`);
+            if (itemToHighlight) {
+                itemToHighlight.classList.add('active-verb');
+                renderConjugation(verbs[activeVerbIndex]);
+            }
+        } else if (verbs.length > 0) {
+            // Select the first item if nothing is selected
+            const firstItem = dom.verbList.querySelector('.verb-item');
+            if (firstItem) firstItem.click();
+        }
+
+
+        dom.filteredVerbsCount.textContent = verbs.length;
     }
 
-    /**
-     * Handles the search logic when the user types in the search bar.
-     */
     function handleSearch() {
-        const query = searchBarEl.value.toLowerCase().trim();
+        const query = dom.searchBar.value.toLowerCase().trim();
 
         if (query === '') {
             verbs = [...sampleVerbs];
         } else {
             verbs = sampleVerbs.filter(verb =>
                 verb.greek.toLowerCase().includes(query) ||
-                verb.english.toLowerCase().includes(query)
+                verb.english.toLowerCase().includes(query) ||
+                verb.present.some(f => f.toLowerCase().includes(query))
             );
         }
 
-        renderAllVerbs();
+        renderFilteredList();
     }
 
-    /**
-     * Initializes the application.
-     */
-    function initApp() {
-        // 1. Initial render of all verbs
-        verbs = [...sampleVerbs];
-        renderAllVerbs();
+    dom.searchBar.addEventListener('input', handleSearch);
 
-        // 2. Attach search listener
-        searchBarEl.addEventListener('input', handleSearch);
+    // --- Favorites Logic ---
 
-        // Optional: Pre-select the first verb for immediate viewing
-        if (verbs.length > 0) {
-             // Use setTimeout to ensure the DOM elements are fully rendered before trying to add 'active-verb' class
-             setTimeout(() => renderConjugation(0), 0);
+    // Renders the list of favorite verbs in the Favorites tab
+    function renderFavorites() {
+        dom.favoritesCount.textContent = window.favorites.length;
+        if (window.favorites.length === 0) {
+            dom.favoritesStatus.textContent = "You don't have any favorite verbs yet. Add one from the Search tab!";
+            dom.favoritesList.innerHTML = '';
+            return;
+        }
+        dom.favoritesStatus.textContent = `Showing ${window.favorites.length} favorite verb(s).`;
+
+        const favoriteVerbsData = sampleVerbs.filter(v => window.favorites.includes(v.greek));
+        renderFullList(dom.favoritesList, favoriteVerbsData, true); // Use the shared renderer
+    }
+
+    dom.favoriteToggleBtn.addEventListener('click', (e) => {
+        const verbToToggle = e.currentTarget.getAttribute('data-verb');
+        if (verbToToggle) {
+            window.toggleFavorite(verbToToggle);
+        }
+    });
+
+    // --- Quiz Logic ---
+    let currentQuizVerb = null;
+    let currentQuizForm = null;
+    let currentQuizTense = null;
+    let isAnswered = false;
+
+    const tenses = [
+        { name: "Present Tense", key: "present", greek: "Ενεστώτας" },
+        { name: "Simple Past Tense", key: "past", greek: "Αόριστος" },
+        { name: "Future Simple", key: "future", greek: "Μέλλοντας Απλός" },
+    ];
+    const persons = ["I", "You (sg)", "He/She/It", "We", "You (pl)", "They"];
+
+    function getRandomElement(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function startQuiz() {
+        dom.quizFeedback.textContent = '';
+        dom.nextQuestionBtn.disabled = true;
+        isAnswered = false;
+
+        // 1. Select a verb
+        const verbPool = (window.favorites.length > 3) ? sampleVerbs.filter(v => window.favorites.includes(v.greek)) : sampleVerbs;
+        currentQuizVerb = getRandomElement(verbPool);
+
+        // 2. Select a tense
+        currentQuizTense = getRandomElement(tenses);
+        const forms = currentQuizVerb[currentQuizTense.key];
+
+        // 3. Select a person
+        let personIndex = -1;
+        // Ensure the form is not empty (Imperative can have empty slots)
+        while(personIndex === -1 || forms[personIndex] === '—' || forms[personIndex] === '') {
+            personIndex = Math.floor(Math.random() * 6);
+        }
+
+        currentQuizForm = forms[personIndex];
+
+        // Set the question text
+        dom.quizQuestion.innerHTML = `How do you conjugate **${currentQuizVerb.english}** (**${currentQuizVerb.greek}**) in the **${currentQuizTense.name}** (${currentQuizTense.greek}) for **${persons[personIndex]}**?`;
+
+        // 4. Generate options
+        const correctOption = currentQuizForm;
+        const options = [correctOption];
+
+        // Get 3 incorrect options from other forms/tenses/verbs
+        while (options.length < 4) {
+            let incorrectOption;
+            const sourceVerb = getRandomElement(sampleVerbs);
+            const sourceTense = getRandomElement(tenses);
+            const sourceForms = sourceVerb[sourceTense.key];
+            incorrectOption = getRandomElement(sourceForms);
+
+            // Avoid using the correct answer, empty strings, or duplicates
+            if (!options.includes(incorrectOption) && incorrectOption !== '—' && incorrectOption !== '') {
+                options.push(incorrectOption);
+            }
+        }
+
+        // Shuffle options
+        options.sort(() => Math.random() - 0.5);
+
+        // 5. Render options
+        dom.quizOptions.innerHTML = '';
+        options.forEach(option => {
+            const button = document.createElement('button');
+            button.className = 'quiz-option bg-white border border-gray-300 p-3 rounded-lg text-lg hover:bg-gray-100 transition text-left shadow-md';
+            button.textContent = option;
+            button.setAttribute('data-answer', option);
+
+            button.addEventListener('click', handleAnswer);
+            dom.quizOptions.appendChild(button);
+        });
+
+        dom.nextQuestionBtn.textContent = 'Next Question';
+        dom.nextQuestionBtn.removeEventListener('click', startQuiz); // Ensure cleanup
+        dom.nextQuestionBtn.addEventListener('click', startQuiz);
+    }
+
+    function handleAnswer(event) {
+        if (isAnswered) return;
+        isAnswered = true;
+
+        const selectedAnswer = event.target.getAttribute('data-answer');
+        const isCorrect = selectedAnswer === currentQuizForm;
+
+        dom.nextQuestionBtn.disabled = false;
+
+        document.querySelectorAll('.quiz-option').forEach(btn => {
+            btn.disabled = true;
+            const answer = btn.getAttribute('data-answer');
+            if (answer === currentQuizForm) {
+                btn.classList.add('bg-secondary', 'text-white', 'border-secondary', 'shadow-xl', 'scale-105');
+            } else if (answer === selectedAnswer) {
+                btn.classList.add('bg-red-500', 'text-white', 'border-red-500');
+            } else {
+                btn.classList.add('opacity-50');
+            }
+        });
+
+        if (isCorrect) {
+            dom.quizFeedback.innerHTML = '<span class="text-secondary">✅ Correct!</span>';
+        } else {
+            dom.quizFeedback.innerHTML = `<span class="text-red-500">❌ Incorrect. The correct answer was: **${currentQuizForm}**</span>`;
         }
     }
 
-    // Start the application when the window loads
-    window.onload = initApp;
+    // --- Initialization ---
+    window.onload = function() {
+        dom.totalVerbsCount.textContent = sampleVerbs.length;
 
+        // Display Auth Status
+        window.addEventListener('authReady', () => {
+            dom.authStatusText.textContent = userId ? `Connected (User ID: ${userId.substring(0, 8)}...)` : 'Offline Mode (Favorites Disabled)';
+        });
+
+        // 1. Initial render of the search list
+        verbs = [...sampleVerbs];
+        renderFilteredList();
+
+        // 2. Pre-select the first verb
+        if (verbs.length > 0) {
+             // Find and click the first verb list item to show conjugation immediately
+             const firstItem = dom.verbList.querySelector('.verb-item');
+             if (firstItem) firstItem.click();
+        }
+    };
 </script>
 
 </body>
