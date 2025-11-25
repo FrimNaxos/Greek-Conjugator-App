@@ -49,44 +49,38 @@
             color: var(--text-color);
             transition: background-color 0.3s, color 0.3s;
             
-            /* --- NEW GREEK FLAG BACKGROUND --- */
+            /* --- GREEK FLAG BACKGROUND --- */
+            /* Flask requires static files to be served via url_for('static', ...) */
             background-image: url({{ url_for('static', filename='greek_flag.png') }}); 
             background-size: cover;          
             background-attachment: fixed;    
             background-position: center;     
             background-repeat: no-repeat;
             
-            /* Apply 80% opacity/transparency using a semi-transparent layer */
-            background-color: rgba(255, 255, 255, 0.5); 
+            /* Apply transparency/opacity using a semi-transparent layer (80% opaque) */
+            background-color: rgba(255, 255, 255, 0.2); /* 20% transparent white layer */
             background-blend-mode: overlay;  
         }
         
         /* Dark Mode adjustment for background */
         .dark-mode body {
-            background-color: rgba(0, 0, 0, 0.5); 
+            background-color: rgba(0, 0, 0, 0.2); 
             background-blend-mode: overlay;
         }
         
         .container {
-    max-width: 950px;
-    margin: 50px auto;
-    /* Change the background to fully transparent */
-    background: transparent; 
-    
-    /* You might want to keep a slight shadow or border */
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); 
-    padding: 40px;
-    border-radius: 12px;
-    transition: background-color 0.3s;
-}
-
-.dark-mode .container {
-    /* Also change the dark mode version to be transparent */
-    background: transparent; 
-}
+            max-width: 950px;
+            margin: 50px auto;
+            /* Made transparent to show the flag through the main card */
+            background: transparent; 
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
         
         .dark-mode .container {
-            background: rgba(30, 30, 30, 0.95); 
+            background: transparent; 
         }
         
         h1 {
@@ -256,6 +250,17 @@
             background-color: var(--link-color);
             color: white;
         }
+
+        /* --- QUIZ VERB STYLING FIX --- */
+        #quiz-verb {
+            font-size: 2.5em; /* Significantly larger text */
+            font-weight: bold;
+            color: var(--dark-blue-text); /* Dark blue text */
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 25px; /* Adds space above the input box */
+        }
+
         /* Table Styling */
         #conjugation-table {
             width: 100%;
@@ -490,7 +495,10 @@
             const verbData = currentVerbData;
 
             // 3. Update Title and Buttons 
-            verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}`;
+            // Display Verb Group if it exists
+            const verbGroup = verbData.Verb_Group ? ` (Group ${verbData.Verb_Group})` : '';
+
+            verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb})${verbGroup} - ${verbData.Translation}`;
             titleContainer.style.display = 'flex';
             pronounceButton.style.display = 'block'; 
             favoriteButton.style.display = 'block'; 
@@ -593,6 +601,7 @@
         async function loadAllVerbs() {
             const listElement = document.getElementById('all-verbs-list');
             
+            // Only fetch if cache is empty
             if (allVerbsCache.length === 0) {
                  listElement.innerHTML = '<li class="verb-list-item" style="justify-content: center; color: var(--text-color);">Loading verb list...</li>';
                 try {
@@ -639,10 +648,14 @@
             filteredVerbs.forEach(verb => {
                 const li = document.createElement('li');
                 li.className = 'verb-list-item';
+                // Display Verb Group if it exists
+                const groupDisplay = verb.Verb_Group ? `<span style="font-style: italic; color: #666; font-size: 0.9em;"> (Group ${verb.Verb_Group})</span>` : '';
+
                 li.innerHTML = `
                     <div>
                         <span class="verb-greek">${verb.Greek_Verb}</span> 
                         <span class="verb-english">(${verb.Translation})</span>
+                        ${groupDisplay}
                     </div>
                 `;
                 li.onclick = () => {

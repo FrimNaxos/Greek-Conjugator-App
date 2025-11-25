@@ -7,7 +7,6 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 # IMPORTANT: Ensure this matches your exact CSV filename!
-# Based on our conversation, we'll use a placeholder name assuming you've pushed your file.
 CSV_FILE = 'greek verb conjugation table v2.csv' 
 DATABASE = 'verbs.db'
 
@@ -21,7 +20,7 @@ def get_db_connection():
     return conn
 
 def initialize_database():
-    """Creates the database and populates it from the CSV file if it doesn't exist."""
+    """Creates the database and populates it from the CSV file if it doesn't exist or is corrupted."""
     # We check if the database file is small, which suggests it might be empty or corrupted.
     if not os.path.exists(DATABASE) or os.path.getsize(DATABASE) < 100: 
         print(f"Database '{DATABASE}' not found or is corrupted. Initializing...")
@@ -53,6 +52,7 @@ def initialize_database():
 
             conn = get_db_connection()
             # Write the cleaned DataFrame to a table named 'verbs'
+            # This will include the new 'Verb_Group' column added to your CSV
             df_cleaned.to_sql('verbs', conn, if_exists='replace', index=False)
             conn.close()
             print(f"Database initialized successfully with {len(df_cleaned)} clean records.")
@@ -76,14 +76,16 @@ def index():
 def all_verbs():
     conn = get_db_connection()
     try:
-        # Fetching only the clean, critical columns
-        verbs_cursor = conn.execute('SELECT ID, Greek_Verb, English_Verb, Translation FROM verbs ORDER BY Greek_Verb ASC').fetchall()
+        # Fetching only the clean, critical columns (and Verb_Group, if it exists)
+        verbs_cursor = conn.execute('SELECT ID, Greek_Verb, English_Verb, Translation, Verb_Group FROM verbs ORDER BY Greek_Verb ASC').fetchall()
         
         verbs_list = [{
             'ID': verb['ID'],
             'Greek_Verb': verb['Greek_Verb'],
             'English_Verb': verb['English_Verb'],
-            'Translation': verb['Translation']
+            'Translation': verb['Translation'],
+            # Safely get Verb_Group if it exists (for compatibility)
+            'Verb_Group': verb['Verb_Group'] if 'Verb_Group' in verb.keys() else ''
         } for verb in verbs_cursor]
         
         return jsonify({'success': True, 'verbs': verbs_list})
@@ -102,6 +104,7 @@ def search_verb():
     conn = get_db_connection()
     term_like = f'%{term}%'
     try:
+        # Selecting all columns (*) to get the Verb_Group as well
         verb_row = conn.execute(
             'SELECT * FROM verbs WHERE Greek_Verb LIKE ? OR English_Verb LIKE ? OR Translation LIKE ?',
             (term_like, term_like, term_like)
