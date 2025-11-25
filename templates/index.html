@@ -20,7 +20,9 @@
             --link-color: #007bff;
             --favorite-color: #ffd700; 
             --accent-green: #28a745; 
-            --dark-blue-text: #001f4d; /* New Dark Blue Text Variable */
+            --dark-blue-text: #001f4d; 
+            --quiz-option-bg: #e3f2fd; /* Light blue for quiz options */
+            --quiz-option-border: #90caf9;
         }
 
         .dark-mode {
@@ -36,7 +38,9 @@
             --link-color: #90bfff;
             --favorite-color: #ffcc00; 
             --accent-green: #38c14f;
-            --dark-blue-text: #e0e0e0; /* Light text in dark mode */
+            --dark-blue-text: #e0e0e0; 
+            --quiz-option-bg: #37474f; /* Dark blue-gray for dark mode options */
+            --quiz-option-border: #546e7a;
         }
 
         /* -------------------------------------- */
@@ -50,21 +54,20 @@
             transition: background-color 0.3s, color 0.3s;
             
             /* --- GREEK FLAG BACKGROUND --- */
-            /* Flask requires static files to be served via url_for('static', ...) */
             background-image: url({{ url_for('static', filename='greek_flag.png') }}); 
             background-size: cover;          
             background-attachment: fixed;    
             background-position: center;     
             background-repeat: no-repeat;
             
-            /* Apply transparency/opacity using a semi-transparent layer (80% opaque) */
+            /* Apply transparency/opacity using a semi-transparent layer (50% opaque) */
             background-color: rgba(255, 255, 255, 0.5); /* 50% transparent white layer */
             background-blend-mode: overlay;  
         }
         
         /* Dark Mode adjustment for background */
         .dark-mode body {
-            background-color: rgba(0, 0, 0, 0.2); 
+            background-color: rgba(0, 0, 0, 0.5); 
             background-blend-mode: overlay;
         }
         
@@ -153,7 +156,7 @@
             color: var(--text-color);
             box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.1);
         }
-
+        
         /* Verb Title, Favorite, & Pronunciation Button Styling */
         #verb-title-container {
             display: flex;
@@ -253,13 +256,44 @@
 
         /* --- QUIZ VERB STYLING FIX --- */
         #quiz-verb {
-            font-size: 2.5em; /* Significantly larger text */
+            font-size: 2.5em; 
             font-weight: bold;
-            color: var(--dark-blue-text); /* Dark blue text */
+            color: var(--dark-blue-text); 
             text-align: center;
             margin-top: 20px;
-            margin-bottom: 25px; /* Adds space above the input box */
+            margin-bottom: 25px; 
+            min-height: 40px; /* Ensure space when loading */
         }
+        
+        /* --- NEW QUIZ TYPE SELECTOR STYLING --- */
+        #quiz-type-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--quiz-option-border);
+            border-radius: 8px;
+            background-color: var(--quiz-option-bg);
+        }
+        #quiz-type-selector label {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--dark-blue-text);
+            display: block; /* Makes the whole label clickable area */
+        }
+        #quiz-type-selector input[type="radio"] {
+            margin-right: 8px;
+            accent-color: var(--link-color);
+        }
+        
+        #quiz-type-prompt {
+             font-size: 1.1em;
+             font-weight: 500;
+             margin-bottom: 15px;
+             color: var(--dark-blue-text);
+        }
+
 
         /* Table Styling */
         #conjugation-table {
@@ -318,6 +352,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- Dark Mode Toggle -->
         <div id="mode-toggle-container">
             <button id="mode-toggle-button" onclick="toggleDarkMode()">Switch to Dark Mode 🌙</button>
         </div>
@@ -331,6 +366,9 @@
             <button class="tab-button" onclick="openTab(event, 'FavoritesTab')">⭐ Favorites (<span id="favorites-count">0</span>)</button>
         </div>
 
+        <!-- --------------------------------------------------- -->
+        <!-- TAB 1: CONJUGATION SEARCH -->
+        <!-- --------------------------------------------------- -->
         <div id="SearchTab" class="tab-content active">
             <h2>Find Conjugations</h2>
             <div id="search-controls">
@@ -369,15 +407,20 @@
                         </tr>
                     </thead>
                     <tbody>
-                        </tbody>
+                        <!-- Table rows will be inserted here by JavaScript -->
+                    </tbody>
                 </table>
                 <div id="example-sentence" style="display: none; padding: 15px; background-color: var(--bg-secondary); border-radius: 8px; margin-top: 20px;"></div>
             </div>
         </div>
         
+        <!-- --------------------------------------------------- -->
+        <!-- TAB 2: ALL VERBS LIST (FILTERING) -->
+        <!-- --------------------------------------------------- -->
         <div id="AllVerbsTab" class="tab-content">
             <h2>All Available Verbs (Filtering)</h2>
             <input type="text" id="verb-list-search" placeholder="Filter by Greek or English name..." onkeyup="filterVerbs()">
+            <!-- The list is now initially empty or shows a message -->
             <ul id="all-verbs-list">
                 <li class="verb-list-item" style="justify-content: center; color: var(--text-color);">
                     <p>Enter a term above to filter the verb list.</p>
@@ -385,15 +428,36 @@
             </ul>
         </div>
 
+        <!-- --------------------------------------------------- -->
+        <!-- TAB 3: QUIZ FUNCTION (UPDATED) -->
+        <!-- --------------------------------------------------- -->
         <div id="QuizTab" class="tab-content">
-            <h2>Verb Translation Quiz</h2>
-            <p class="message" style="background-color: #fff8e1; border: 1px solid #ffecb3; color: #6d4c41; padding: 10px;">Translate the Greek verb below into English.</p>
+            <h2>Verb Practice Quiz</h2>
             
+            <div id="quiz-type-selector" onchange="loadRandomQuiz()">
+                <div id="quiz-type-prompt">Select your practice mode:</div>
+                <label>
+                    <input type="radio" name="quiz_type" value="greek_to_english" checked> 
+                    Greek Verb to English Translation (e.g., τρώω → to eat)
+                </label>
+                <label>
+                    <input type="radio" name="quiz_type" value="english_to_greek"> 
+                    English Verb to Greek Infinitive (e.g., to eat → τρώω)
+                </label>
+                <label>
+                    <input type="radio" name="quiz_type" value="conjugation"> 
+                    Conjugation Practice (e.g., Give the Present Tense, Εγώ form of 'to eat' → τρώω)
+                </label>
+            </div>
+
             <div id="quiz-area">
+                <p id="quiz-instructions" class="message" style="background-color: var(--quiz-option-bg); border: 1px solid var(--quiz-option-border); color: var(--dark-blue-text); padding: 10px;">Translate the Greek verb below into English.</p>
+                
+                <!-- QUIZ VERB DISPLAY (Styling applied above) -->
                 <div id="quiz-verb">Loading...</div>
                 
                 <form id="quiz-check-form">
-                    <input type="text" id="quiz-input" placeholder="Enter the English translation (e.g., To eat)">
+                    <input type="text" id="quiz-input" placeholder="Enter your answer..." autocomplete="off">
                     <button type="submit" id="quiz-check-button">Check</button>
                 </form>
 
@@ -402,11 +466,15 @@
             </div>
         </div>
         
+        <!-- --------------------------------------------------- -->
+        <!-- TAB 4: FAVORITES LIST -->
+        <!-- --------------------------------------------------- -->
         <div id="FavoritesTab" class="tab-content">
             <h2>Your Favorite Verbs</h2>
             <p id="favorites-message" class="message" style="background-color: #f0f0f0; border: 1px solid #ddd; color: #333; padding: 10px;">Your saved verbs will appear here.</p>
             <ul id="favorites-list" style="list-style: none; padding: 0;">
-                </ul>
+                <!-- Favorites items will be loaded here -->
+            </ul>
         </div>
 
     </div>
@@ -418,7 +486,25 @@
         let lastSearchTerm = '';
         const FAVORITES_KEY = 'greekVerbFavorites'; 
         let allVerbsCache = []; 
+        let currentQuizAnswerKey = null; // Stores the column name for the conjugation answer (e.g., 'Translation', 'Greek_Verb', 'Present_Ego')
 
+
+        // Tenses and Persons for Conjugation Quizzing
+        const TENSE_MAP = {
+            'Present': 'Present', 
+            'Aorist': 'Aorist', 
+            'Future': 'Future',
+            'Present_Imperative': 'Present Imperative',
+            'Aorist_Imperative': 'Aorist Imperative'
+        };
+        const PERSON_MAP = {
+            'Ego': { label: 'Εγώ (I)', suffix: 'Ego' },
+            'Esy': { label: 'Εσύ (You sg)', suffix: 'Esy' },
+            'HeSheIt': { label: 'Αυτός/ή/ό (He/She/It)', suffix: 'HeSheIt' },
+            'We': { label: 'Εμείς (We)', suffix: 'We' },
+            'YouPl': { label: 'Εσείς (You pl)', suffix: 'YouPl' },
+            'They': { label: 'Αυτοί/ές/ά (They)', suffix: 'They' }
+        };
 
         // --- GENERIC AUDIO PRONUNCIATION LOGIC ---
         function pronounceText(text) {
@@ -495,7 +581,6 @@
             const verbData = currentVerbData;
 
             // 3. Update Title and Buttons 
-            // Display Verb Group if it exists
             const verbGroup = verbData.Verb_Group ? ` (Group ${verbData.Verb_Group})` : '';
 
             verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb})${verbGroup} - ${verbData.Translation}`;
@@ -794,7 +879,72 @@
             setMode(!isDark);
         }
         
-        // --- QUIZ LOGIC ---
+        // --- QUIZ LOGIC (UPDATED) ---
+
+        function getSelectedQuizType() {
+            return document.querySelector('input[name="quiz_type"]:checked').value;
+        }
+
+        function generateQuizPrompt() {
+            const quizType = getSelectedQuizType();
+            const verbDisplay = document.getElementById('quiz-verb');
+            const instructions = document.getElementById('quiz-instructions');
+            
+            // 1. Reset
+            currentQuizAnswerKey = null;
+            
+            if (!currentQuizVerb) {
+                verbDisplay.textContent = "Error: No verbs loaded.";
+                instructions.textContent = "Please ensure the verb list has loaded.";
+                return;
+            }
+
+            const verb = currentQuizVerb;
+
+            if (quizType === 'greek_to_english') {
+                instructions.innerHTML = `Translate the Greek verb below into English.`;
+                verbDisplay.textContent = verb.Greek_Verb;
+                currentQuizAnswerKey = 'Translation';
+            } 
+            else if (quizType === 'english_to_greek') {
+                instructions.innerHTML = `Translate the English infinitive below into the Greek infinitive.`;
+                verbDisplay.textContent = verb.English_Verb;
+                currentQuizAnswerKey = 'Greek_Verb';
+            } 
+            else if (quizType === 'conjugation') {
+                // Randomly select a Tense and Person
+                const tenses = Object.keys(TENSE_MAP);
+                let randomTenseKey = tenses[Math.floor(Math.random() * tenses.length)];
+                
+                let personsArray = Object.values(PERSON_MAP);
+                let randomPerson = personsArray[Math.floor(Math.random() * personsArray.length)];
+                
+                // Handle Imperative Tense limitation (only Esy and YouPl)
+                if (randomTenseKey.includes('Imperative')) {
+                    const imperativePersons = personsArray.filter(p => p.suffix === 'Esy' || p.suffix === 'YouPl');
+                    randomPerson = imperativePersons[Math.floor(Math.random() * imperativePersons.length)];
+                }
+
+
+                // Construct the Column Key (e.g., 'Present_Ego')
+                const columnKey = `${randomTenseKey}_${randomPerson.suffix}`;
+                const expectedAnswer = verb[columnKey];
+                
+                // If the selected form is empty, retry the whole process (recursion limit 5)
+                if (!expectedAnswer || expectedAnswer.trim() === '-') {
+                    return generateQuizPrompt(); 
+                }
+                
+                // Set the prompt text
+                instructions.innerHTML = `Give the <strong>${TENSE_MAP[randomTenseKey]}</strong> Tense, <strong>${randomPerson.label}</strong> form of the verb <strong>'${verb.English_Verb}'</strong>.`;
+                
+                // Display the key elements (English verb) in the big display area
+                verbDisplay.textContent = verb.English_Verb;
+                currentQuizAnswerKey = columnKey;
+            }
+        }
+
+
         async function loadRandomQuiz() {
             document.getElementById('quiz-result-area').innerHTML = '';
             document.getElementById('quiz-input').value = '';
@@ -802,39 +952,64 @@
             document.getElementById('next-quiz-button').style.display = 'none';
             document.getElementById('quiz-verb').textContent = "Loading...";
 
-            const response = await fetch('/random_verb');
+            // Ensure we have the full cache before proceeding
+            if (allVerbsCache.length === 0) {
+                 await loadAllVerbs(); 
+                 if (allVerbsCache.length === 0) return; // Exit if still empty
+            }
+
+            // Get a random verb from the cache
+            const randomIndex = Math.floor(Math.random() * allVerbsCache.length);
+            const randomVerb = allVerbsCache[randomIndex];
+            
+            // Fetch the full conjugation data for the random verb
+            const response = await fetch(`/search?term=${encodeURIComponent(randomVerb.Greek_Verb)}`);
             const data = await response.json();
 
             if (data.success) {
                 currentQuizVerb = data.verb;
-                document.getElementById('quiz-verb').textContent = currentQuizVerb.Greek_Verb;
+                // Generate the prompt and set the answer key based on the selected quiz type
+                generateQuizPrompt();
             } else {
-                document.getElementById('quiz-verb').textContent = "Error: No verbs found or loaded.";
+                document.getElementById('quiz-verb').textContent = "Error: Failed to fetch verb details.";
             }
+        }
+
+
+        function normalizeAnswer(answer) {
+            // Remove leading/trailing whitespace and convert to lowercase for comparison
+            return answer.trim().toLowerCase().replace(/^to\s/, '');
         }
 
         document.getElementById('quiz-check-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            const userAnswer = document.getElementById('quiz-input').value.trim().toLowerCase();
+            const userAnswer = document.getElementById('quiz-input').value;
             const resultArea = document.getElementById('quiz-result-area');
             const checkButton = document.getElementById('quiz-check-button');
             const nextButton = document.getElementById('next-quiz-button');
-
-            if (!userAnswer || !currentQuizVerb) {
+            
+            if (!userAnswer || !currentQuizVerb || !currentQuizAnswerKey) {
                 resultArea.innerHTML = `<div class="quiz-result incorrect" style="color: red; font-weight: bold;">Please load a verb and enter an answer.</div>`;
                 return;
             }
 
-            const correctAnswer = currentQuizVerb.Translation.trim().toLowerCase().replace(/^to\s/, '');
-            const normalizedUserAnswer = userAnswer.replace(/^to\s/, '');
+            const expectedAnswer = currentQuizVerb[currentQuizAnswerKey];
+            const normalizedUserAnswer = normalizeAnswer(userAnswer);
+            const normalizedCorrectAnswer = normalizeAnswer(expectedAnswer);
 
             checkButton.style.display = 'none';
             nextButton.style.display = 'block';
 
-            if (normalizedUserAnswer === correctAnswer) {
-                resultArea.innerHTML = `<div class="quiz-result correct" style="color: green; font-weight: bold;">✅ Correct! The translation is "${currentQuizVerb.Translation}".</div>`;
+            if (normalizedUserAnswer === normalizedCorrectAnswer) {
+                resultArea.innerHTML = `<div class="quiz-result correct" style="color: green; font-weight: bold;">✅ Correct!</div>`;
             } else {
-                resultArea.innerHTML = `<div class="quiz-result incorrect" style="color: red; font-weight: bold;">❌ Incorrect. The correct translation is "${currentQuizVerb.Translation}".</div>`;
+                // If it's a conjugation quiz, show the target form in Greek
+                let displayCorrect = expectedAnswer;
+                if (currentQuizAnswerKey !== 'Translation') {
+                    displayCorrect = currentQuizVerb.Greek_Verb + ' Form: ' + expectedAnswer;
+                }
+                
+                resultArea.innerHTML = `<div class="quiz-result incorrect" style="color: red; font-weight: bold;">❌ Incorrect. The correct answer is: ${displayCorrect}</div>`;
             }
         });
 
@@ -918,6 +1093,9 @@
              document.getElementById('SearchTab').style.display = 'block';
              document.querySelector('.tab-button[onclick*="' + 'SearchTab' + '"]').className += " active";
              updateFavoritesCount(getFavorites().length); 
+
+             // 3. Initialize quiz with default type
+             document.querySelector('input[name="quiz_type"][value="greek_to_english"]').checked = true;
         });
     </script>
 </body>
