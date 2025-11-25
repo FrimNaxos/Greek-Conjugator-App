@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Greek Verb Conjugator Lookup</title>
     <style>
         /* -------------------------------------- */
@@ -21,8 +22,10 @@
             --favorite-color: #ffd700; 
             --accent-green: #28a745; 
             --dark-blue-text: #001f4d; 
-            --quiz-option-bg: #e3f2fd; /* Light blue for quiz options */
+            --quiz-option-bg: #e3f2fd; 
             --quiz-option-border: #90caf9;
+            --error-bg: #ffe0b2;
+            --error-text: #e65100;
         }
 
         .dark-mode {
@@ -39,143 +42,125 @@
             --favorite-color: #ffcc00; 
             --accent-green: #38c14f;
             --dark-blue-text: #e0e0e0; 
-            --quiz-option-bg: #37474f; /* Dark blue-gray for dark mode options */
+            --quiz-option-bg: #37474f; 
             --quiz-option-border: #546e7a;
+            --error-bg: #4d3e2e;
+            --error-text: #ffcc80;
         }
 
         /* -------------------------------------- */
         /* Global Styles (Using Variables) */
         /* -------------------------------------- */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
             color: var(--text-color);
             transition: background-color 0.3s, color 0.3s;
-            
-            /* --- GREEK FLAG BACKGROUND --- */
-            background-image: url({{ url_for('static', filename='greek_flag.png') }}); 
-            background-size: cover;          
-            background-attachment: fixed;    
-            background-position: center;     
-            background-repeat: no-repeat;
-            
-            /* Apply transparency/opacity using a semi-transparent layer (50% opaque) */
-            background-color: rgba(255, 255, 255, 0.5); /* 50% transparent white layer */
-            background-blend-mode: overlay;  
-        }
-        
-        /* Dark Mode adjustment for background */
-        .dark-mode body {
-            background-color: rgba(0, 0, 0, 0.5); 
-            background-blend-mode: overlay;
+            background-color: var(--bg-secondary); 
         }
         
         .container {
             max-width: 950px;
-            margin: 50px auto;
-            /* Made transparent to show the flag through the main card */
-            background: transparent; 
-            padding: 40px;
+            margin: 30px auto;
+            background: var(--bg-primary); 
+            padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             transition: background-color 0.3s;
         }
-        
-        .dark-mode .container {
-            background: transparent; 
+
+        /* Responsive container margin for small screens */
+        @media (max-width: 768px) {
+            .container {
+                margin: 15px;
+                padding: 15px;
+            }
         }
         
         h1 {
             color: var(--heading-color);
             text-align: center;
-            margin-bottom: 25px;
-            font-weight: 300;
+            margin-bottom: 20px;
+            font-weight: 400;
         }
         
         /* Dark Mode Toggle Position */
         #mode-toggle-container {
             text-align: right;
-            margin-bottom: -40px; 
+            margin-bottom: -10px; 
             padding: 10px 0;
         }
-        #mode-toggle-button {
-            /* Inherits 3D style from the button selector below */
-            background: none;
-            border: 1px solid var(--link-color);
-            color: var(--link-color);
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: all 0.3s;
-        }
-        #mode-toggle-button:hover {
-            background-color: var(--link-color);
-            color: var(--bg-primary);
-        }
-        
+
         /* -------------------------------------- */
-        /* NEW 3D BUTTON STYLING */
+        /* 3D BUTTON STYLING (Applied to all buttons) */
         /* -------------------------------------- */
-        button, #search-button, #random-button, #generate-sentence-button, 
-        #quiz-check-button, #next-quiz-button, #mode-toggle-button {
-            /* 3D shadow effect */
-            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4); 
-            
-            /* Dark Blue Bold Text */
+        button, .tab-button, input[type="submit"] {
+            box-shadow: 1.5px 1.5px 3px rgba(0, 0, 0, 0.3); 
             color: var(--dark-blue-text) !important; 
-            font-weight: bold;
-            text-shadow: 0.5px 0.5px 0.5px rgba(255, 255, 255, 0.5); 
-            
-            /* General Button Styling */
+            font-weight: 600;
             background-color: var(--bg-secondary);
             border: 1px solid var(--dark-blue-text);
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 10px 15px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 1em;
-            transition: all 0.2s;
-            line-height: 1; /* Ensure text alignment is good */
+            font-size: 0.95em;
+            transition: all 0.15s;
+            line-height: 1.1; 
+            user-select: none;
         }
         
-        button:hover, #search-button:hover, #random-button:hover {
-            transform: translateY(-1px); /* Slight lift on hover for 3D feel */
-            box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+        button:hover, input[type="submit"]:hover {
+            transform: translateY(-0.5px); 
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
             background-color: #e0e0e0;
         }
         
+        .dark-mode button:hover, .dark-mode input[type="submit"]:hover {
+            background-color: #3a3a3a;
+        }
+
         /* Input Field Styling */
         input[type="text"] {
+            width: calc(100% - 130px); /* Adjust width based on search button */
+            max-width: 350px;
             padding: 10px 15px;
-            margin-bottom: 20px;
-            border: 2px solid var(--input-border);
-            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
             font-size: 16px;
             background-color: var(--bg-primary);
             color: var(--text-color);
-            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.05);
+            margin-right: 10px;
         }
-        
+
+        #search-form {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
         /* Verb Title, Favorite, & Pronunciation Button Styling */
         #verb-title-container {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             align-items: center;
             gap: 15px;
             margin-top: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             border-bottom: 1px solid var(--input-border);
             padding-bottom: 10px;
         }
         #verb-title {
-            color: var(--text-color);
-            font-size: 1.8em;
-            font-weight: 600;
+            color: var(--heading-color);
+            font-size: 1.6em;
+            font-weight: 500;
+            text-align: center;
         }
         
         #favorite-button, #pronounce-infinitive-button {
-            font-size: 2em;
+            font-size: 1.8em;
             background: none;
             border: none;
             cursor: pointer;
@@ -183,7 +168,8 @@
             padding: 0;
             margin: 0;
             transition: color 0.2s, transform 0.2s;
-            box-shadow: none; /* Override 3D shadow for these specific icons */
+            box-shadow: none !important; 
+            color: var(--accent-green);
         }
 
         #favorite-button {
@@ -196,52 +182,45 @@
             transform: scale(1.1);
         }
         
-        #pronounce-infinitive-button {
-            color: var(--accent-green);
-            font-size: 1.5em; 
-        }
-        
         /* Tabs Navigation */
         .tabs {
             display: flex;
             border-bottom: 2px solid var(--input-border);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             overflow-x: auto; 
+            gap: 5px;
         }
         .tab-button {
-            padding: 10px 20px;
-            cursor: pointer;
+            padding: 10px 15px;
             background: none;
-            border: none;
             border-bottom: 2px solid transparent;
-            font-size: 1.1em;
+            font-size: 1em;
             color: var(--text-color);
-            transition: all 0.3s;
             white-space: nowrap; 
-            box-shadow: none; /* Override 3D shadow for tabs */
+            box-shadow: none !important; 
             font-weight: normal !important;
+            border-top: none;
+            border-left: none;
+            border-right: none;
         }
         .tab-button.active {
             color: var(--link-color);
             border-bottom: 2px solid var(--link-color);
-            font-weight: 600;
+            font-weight: 600 !important;
         }
         
-        /* List View Filtering/Navigation */
-        #verb-list-search {
-            width: 100%;
-        }
-        #all-verbs-list {
+        /* Verb List */
+        #all-verbs-list, #favorites-list {
             list-style: none;
             padding: 0;
-            height: 400px; 
+            max-height: 400px; 
             overflow-y: auto; 
             border: 1px solid var(--input-border);
             border-radius: 8px;
             background-color: var(--bg-secondary);
         }
         .verb-list-item {
-            padding: 12px 15px;
+            padding: 10px 15px;
             border-bottom: 1px solid var(--input-border);
             cursor: pointer;
             display: flex;
@@ -253,73 +232,88 @@
             background-color: var(--link-color);
             color: white;
         }
+        .verb-list-item:last-child {
+            border-bottom: none;
+        }
 
-        /* --- QUIZ VERB STYLING FIX --- */
+        /* Quiz Styling */
         #quiz-verb {
-            font-size: 2.5em; 
+            font-size: 2.2em; 
             font-weight: bold;
             color: var(--dark-blue-text); 
             text-align: center;
             margin-top: 20px;
             margin-bottom: 25px; 
-            min-height: 40px; /* Ensure space when loading */
+            min-height: 40px; 
         }
         
-        /* --- NEW QUIZ TYPE SELECTOR STYLING --- */
         #quiz-type-selector {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
             padding: 15px;
             border: 1px solid var(--quiz-option-border);
             border-radius: 8px;
             background-color: var(--quiz-option-bg);
-        }
-        #quiz-type-selector label {
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--dark-blue-text);
-            display: block; /* Makes the whole label clickable area */
-        }
-        #quiz-type-selector input[type="radio"] {
-            margin-right: 8px;
-            accent-color: var(--link-color);
+            margin-bottom: 20px;
         }
         
-        #quiz-type-prompt {
-             font-size: 1.1em;
-             font-weight: 500;
-             margin-bottom: 15px;
-             color: var(--dark-blue-text);
+        #quiz-check-form {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        #quiz-check-form input {
+            max-width: 300px;
+            width: 100%;
         }
 
-
+        #quiz-result-area {
+            min-height: 40px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+            padding: 5px;
+        }
+        .correct { color: var(--accent-green); }
+        .incorrect { color: red; }
+        
+        .message {
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+            border: 1px solid;
+        }
+        .missing-verb-splash {
+            background-color: var(--error-bg); 
+            border-color: var(--error-text); 
+            color: var(--error-text); 
+            padding: 20px;
+            font-size: 1.1em;
+        }
+        
         /* Table Styling */
         #conjugation-table {
             width: 100%;
-            border-collapse: separate; 
-            border-spacing: 0;
+            border-collapse: collapse; 
             margin-top: 20px;
+            border-radius: 8px;
             overflow: hidden; 
         }
         #conjugation-table th, #conjugation-table td {
-            padding: 12px 15px;
+            padding: 10px;
             text-align: center;
             border: 1px solid var(--input-border);
-            font-size: 0.95em;
+            font-size: 0.9em;
         }
         #conjugation-table th {
             background-color: var(--table-header-bg); 
             color: var(--table-header-text);
             font-weight: 600;
-            border-top: none;
-            border-bottom: 2px solid var(--table-header-bg);
         }
         .tense-header {
             background-color: #3498db; 
             color: white;
-            font-size: 1.1em;
+            font-size: 1em;
             font-weight: bold;
         }
         #conjugation-table tbody tr td:first-child {
@@ -328,29 +322,22 @@
             font-weight: bold;
             color: var(--text-color);
         }
-        #conjugation-table tbody tr:nth-child(even) {
+        #conjugation-table tbody tr:nth-child(odd) {
             background-color: var(--table-row-odd);
         }
         
         /* Style for clickable cells (Verb forms) */
         #conjugation-table td:not(:first-child) {
             cursor: pointer; 
-            transition: background-color 0.15s;
+            transition: background-color 0.1s;
         }
         #conjugation-table td:not(:first-child):hover {
             background-color: rgba(0, 123, 255, 0.1); 
         }
 
-        .message, .missing-verb-splash {
-            /* General message styling */
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
     </style>
 </head>
-<body>
+<body onload="initApp()">
     <div class="container">
         <!-- Dark Mode Toggle -->
         <div id="mode-toggle-container">
@@ -378,7 +365,6 @@
                 </form>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button id="random-button">Random Verb</button>
-                    <button id="generate-sentence-button">Generate Simple Sentence</button>
                 </div>
             </div>
 
@@ -410,7 +396,6 @@
                         <!-- Table rows will be inserted here by JavaScript -->
                     </tbody>
                 </table>
-                <div id="example-sentence" style="display: none; padding: 15px; background-color: var(--bg-secondary); border-radius: 8px; margin-top: 20px;"></div>
             </div>
         </div>
         
@@ -419,41 +404,30 @@
         <!-- --------------------------------------------------- -->
         <div id="AllVerbsTab" class="tab-content">
             <h2>All Available Verbs (Filtering)</h2>
-            <input type="text" id="verb-list-search" placeholder="Filter by Greek or English name..." onkeyup="filterVerbs()">
-            <!-- The list is now initially empty or shows a message -->
+            <input type="text" id="verb-list-search" placeholder="Filter by Greek or English name..." oninput="filterVerbs()">
             <ul id="all-verbs-list">
                 <li class="verb-list-item" style="justify-content: center; color: var(--text-color);">
-                    <p>Enter a term above to filter the verb list.</p>
+                    <p>Loading verb list...</p>
                 </li>
             </ul>
         </div>
 
         <!-- --------------------------------------------------- -->
-        <!-- TAB 3: QUIZ FUNCTION (UPDATED) -->
+        <!-- TAB 3: QUIZ FUNCTION -->
         <!-- --------------------------------------------------- -->
         <div id="QuizTab" class="tab-content">
             <h2>Verb Practice Quiz</h2>
             
             <div id="quiz-type-selector" onchange="loadRandomQuiz()">
                 <div id="quiz-type-prompt">Select your practice mode:</div>
-                <label>
-                    <input type="radio" name="quiz_type" value="greek_to_english" checked> 
-                    Greek Verb to English Translation (e.g., τρώω → to eat)
-                </label>
-                <label>
-                    <input type="radio" name="quiz_type" value="english_to_greek"> 
-                    English Verb to Greek Infinitive (e.g., to eat → τρώω)
-                </label>
-                <label>
-                    <input type="radio" name="quiz_type" value="conjugation"> 
-                    Conjugation Practice (e.g., Give the Present Tense, Εγώ form of 'to eat' → τρώω)
-                </label>
+                <label style="display:block;"><input type="radio" name="quiz_type" value="greek_to_english" checked> Greek Verb to English Translation</label>
+                <label style="display:block;"><input type="radio" name="quiz_type" value="english_to_greek"> English Verb to Greek Infinitive</label>
+                <label style="display:block;"><input type="radio" name="quiz_type" value="conjugation"> Conjugation Practice (Person/Tense Form)</label>
             </div>
 
             <div id="quiz-area">
                 <p id="quiz-instructions" class="message" style="background-color: var(--quiz-option-bg); border: 1px solid var(--quiz-option-border); color: var(--dark-blue-text); padding: 10px;">Translate the Greek verb below into English.</p>
                 
-                <!-- QUIZ VERB DISPLAY (Styling applied above) -->
                 <div id="quiz-verb">Loading...</div>
                 
                 <form id="quiz-check-form">
@@ -471,23 +445,110 @@
         <!-- --------------------------------------------------- -->
         <div id="FavoritesTab" class="tab-content">
             <h2>Your Favorite Verbs</h2>
-            <p id="favorites-message" class="message" style="background-color: #f0f0f0; border: 1px solid #ddd; color: #333; padding: 10px;">Your saved verbs will appear here.</p>
-            <ul id="favorites-list" style="list-style: none; padding: 0;">
-                <!-- Favorites items will be loaded here -->
-            </ul>
+            <p id="favorites-message" class="message" style="background-color: var(--bg-secondary); border: 1px solid var(--input-border); color: var(--text-color); padding: 10px;">Your saved verbs will appear here.</p>
+            <ul id="favorites-list" style="list-style: none; padding: 0;"></ul>
         </div>
 
     </div>
 
     <script>
-        // --- GLOBALS ---
+        // --- DATA AND GLOBALS ---
         let currentVerbData = null; 
         let currentQuizVerb = null;
-        let lastSearchTerm = '';
-        const FAVORITES_KEY = 'greekVerbFavorites'; 
         let allVerbsCache = []; 
-        let currentQuizAnswerKey = null; // Stores the column name for the conjugation answer (e.g., 'Translation', 'Greek_Verb', 'Present_Ego')
+        let currentQuizAnswerKey = null; 
+        const FAVORITES_KEY = 'greekVerbFavorites'; 
 
+        // Sample Data for a completely runnable, client-side application
+        const sampleVerbs = [
+            {
+                "ID": 1,
+                "Greek_Verb": "τρώω",
+                "English_Verb": "to eat",
+                "Translation": "eat",
+                "Verb_Group": "1",
+                "Present_Ego": "τρώω",
+                "Present_Esy": "τρως",
+                "Present_HeSheIt": "τρώει",
+                "Present_We": "τρώμε",
+                "Present_YouPl": "τρώτε",
+                "Present_They": "τρώνε",
+                "Aorist_Ego": "έφαγα",
+                "Aorist_Esy": "έφαγες",
+                "Aorist_HeSheIt": "έφαγε",
+                "Aorist_We": "φάγαμε",
+                "Aorist_YouPl": "φάγατε",
+                "Aorist_They": "έφαγαν",
+                "Future_Ego": "θα φάω",
+                "Future_Esy": "θα φας",
+                "Future_HeSheIt": "θα φάει",
+                "Future_We": "θα φάμε",
+                "Future_YouPl": "θα φάτε",
+                "Future_They": "θα φάνε",
+                "Present_Imperative_Esy": "τρώγε",
+                "Present_Imperative_YouPl": "τρώγετε",
+                "Aorist_Imperative_Esy": "φάε",
+                "Aorist_Imperative_YouPl": "φάτε",
+            },
+            {
+                "ID": 2,
+                "Greek_Verb": "μιλάω",
+                "English_Verb": "to speak",
+                "Translation": "speak/talk",
+                "Verb_Group": "2",
+                "Present_Ego": "μιλάω",
+                "Present_Esy": "μιλάς",
+                "Present_HeSheIt": "μιλάει",
+                "Present_We": "μιλάμε",
+                "Present_YouPl": "μιλάτε",
+                "Present_They": "μιλούν",
+                "Aorist_Ego": "μίλησα",
+                "Aorist_Esy": "μίλησες",
+                "Aorist_HeSheIt": "μίλησε",
+                "Aorist_We": "μιλήσαμε",
+                "Aorist_YouPl": "μιλήσατε",
+                "Aorist_They": "μίλησαν",
+                "Future_Ego": "θα μιλήσω",
+                "Future_Esy": "θα μιλήσεις",
+                "Future_HeSheIt": "θα μιλήσει",
+                "Future_We": "θα μιλήσουμε",
+                "Future_YouPl": "θα μιλήσετε",
+                "Future_They": "θα μιλήσουν",
+                "Present_Imperative_Esy": "μίλα",
+                "Present_Imperative_YouPl": "μιλάτε",
+                "Aorist_Imperative_Esy": "μίλησε",
+                "Aorist_Imperative_YouPl": "μιλήστε",
+            },
+            {
+                "ID": 3,
+                "Greek_Verb": "βλέπω",
+                "English_Verb": "to see",
+                "Translation": "see/watch",
+                "Verb_Group": "2",
+                "Present_Ego": "βλέπω",
+                "Present_Esy": "βλέπεις",
+                "Present_HeSheIt": "βλέπει",
+                "Present_We": "βλέπουμε",
+                "Present_YouPl": "βλέπετε",
+                "Present_They": "βλέπουν",
+                "Aorist_Ego": "είδα",
+                "Aorist_Esy": "είδες",
+                "Aorist_HeSheIt": "είδε",
+                "Aorist_We": "είδαμε",
+                "Aorist_YouPl": "είδατε",
+                "Aorist_They": "είδαν",
+                "Future_Ego": "θα δω",
+                "Future_Esy": "θα δεις",
+                "Future_HeSheIt": "θα δει",
+                "Future_We": "θα δούμε",
+                "Future_YouPl": "θα δείτε",
+                "Future_They": "θα δουν",
+                "Present_Imperative_Esy": "βλέπε",
+                "Present_Imperative_YouPl": "βλέπετε",
+                "Aorist_Imperative_Esy": "δες",
+                "Aorist_Imperative_YouPl": "δείτε",
+            }
+        ];
 
         // Tenses and Persons for Conjugation Quizzing
         const TENSE_MAP = {
@@ -506,6 +567,32 @@
             'They': { label: 'Αυτοί/ές/ά (They)', suffix: 'They' }
         };
 
+        // --- INITIALIZATION ---
+        function initApp() {
+            // Load preferred theme
+            const savedTheme = localStorage.getItem('theme');
+            setMode(savedTheme === 'dark'); 
+            
+            // Load verbs (using the local sample data for reliability)
+            allVerbsCache = sampleVerbs;
+            
+            // Render UI components
+            renderFavoritesList();
+            updateFavoritesCount(getFavorites().length);
+
+            // Set up event listeners
+            document.getElementById('search-form').addEventListener('submit', handleSearch);
+            document.getElementById('random-button').addEventListener('click', handleRandomSearch);
+            document.getElementById('quiz-check-form').addEventListener('submit', checkQuizAnswer);
+
+            // Load initial quiz
+            loadRandomQuiz();
+            
+            // Since we use in-memory data, loadAllVerbs can be simplified to just render
+            // if the AllVerbsTab is clicked for the first time.
+        }
+
+
         // --- GENERIC AUDIO PRONUNCIATION LOGIC ---
         function pronounceText(text) {
             if (!text || text.trim() === '-' || text.trim() === '') return;
@@ -520,8 +607,13 @@
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
                 utterance.lang = 'el-GR'; 
                 
+                // You may need to wait for voices to load or use a default one
+                let greekVoice = null;
                 const voices = speechSynthesis.getVoices();
-                const greekVoice = voices.find(voice => voice.lang === 'el-GR' || voice.lang === 'el');
+                if (voices.length > 0) {
+                    greekVoice = voices.find(voice => voice.lang === 'el-GR' || voice.lang.startsWith('el-'));
+                }
+                
                 if (greekVoice) {
                     utterance.voice = greekVoice;
                 }
@@ -530,12 +622,92 @@
 
                 speechSynthesis.speak(utterance);
             } else {
-                console.warn("Speech synthesis not supported.");
+                console.warn("Speech synthesis not supported on this browser.");
+            }
+        }
+
+        // --- TAB SWITCHING ---
+        function openTab(evt, tabName) {
+            // Hide all tab contents
+            const tabcontent = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // Remove the "active" class from all tab buttons
+            const tablinks = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            // Show the current tab, and add an "active" class to the button
+            document.getElementById(tabName).style.display = "block";
+            if (evt) {
+                evt.currentTarget.className += " active";
+            } else {
+                // If called without event (e.g., from search result), activate button manually
+                document.querySelector(`.tab-button[onclick*='${tabName}']`).className += " active";
+            }
+            
+            // Special initialization for AllVerbsTab
+            if (tabName === 'AllVerbsTab') {
+                renderAllVerbs();
+            } else if (tabName === 'FavoritesTab') {
+                renderFavoritesList();
             }
         }
 
 
-        // --- CORE LOGIC (SEARCH, RANDOM) ---
+        // --- SEARCH, DISPLAY, AND RANDOM LOGIC ---
+        function findVerb(term) {
+            const normalizedTerm = term.trim().toLowerCase();
+            return allVerbsCache.find(verb => 
+                verb.Greek_Verb.toLowerCase() === normalizedTerm || 
+                verb.English_Verb.toLowerCase() === normalizedTerm ||
+                verb.Translation.toLowerCase() === normalizedTerm
+            );
+        }
+
+        function handleSearch(e) {
+            e.preventDefault(); 
+            const searchTerm = document.getElementById('search-input').value;
+            if (!searchTerm.trim()) {
+                displayMessage('Please enter a verb to search.', 'warning');
+                return;
+            }
+            
+            const verbData = findVerb(searchTerm);
+
+            if (verbData) {
+                displayConjugation({ success: true, verb: verbData }, searchTerm);
+            } else {
+                displayConjugation({ success: false, verb_not_found: true }, searchTerm);
+            }
+        }
+
+        function handleRandomSearch() {
+            if (allVerbsCache.length === 0) {
+                displayMessage('No verbs loaded to pick a random one.', 'error');
+                return;
+            }
+            const randomIndex = Math.floor(Math.random() * allVerbsCache.length);
+            const verbData = allVerbsCache[randomIndex];
+            displayConjugation({ success: true, verb: verbData }, 'Random Verb');
+        }
+        
+        function displayMessage(text, type) {
+            const messageArea = document.getElementById('message-area');
+            let style = '';
+            if (type === 'warning') {
+                 style = 'background-color: #fff8e1; border: 1px solid #ffecb3; color: #6d4c41;';
+            } else if (type === 'error') {
+                 style = 'background-color: var(--error-bg); border: 1px solid var(--error-text); color: var(--error-text);';
+            } else if (type === 'success') {
+                 style = 'background-color: #e8f5e9; border: 1px solid #c8e6c9; color: #1b5e20;';
+            }
+            messageArea.innerHTML = `<div class="message" style="${style}">${text}</div>`;
+        }
+
         function displayConjugation(data, searchTerm) {
             const verbTitle = document.getElementById('verb-title');
             const titleContainer = document.getElementById('verb-title-container');
@@ -544,7 +716,6 @@
             const tableBody = document.querySelector('#conjugation-table tbody');
             const conjugationTable = document.getElementById('conjugation-table');
             const messageArea = document.getElementById('message-area');
-            const exampleSentence = document.getElementById('example-sentence');
             
             // 1. Reset state
             currentVerbData = null;
@@ -552,26 +723,19 @@
             tableBody.innerHTML = '';
             titleContainer.style.display = 'none';
             conjugationTable.style.display = 'none';
-            exampleSentence.style.display = 'none'; 
-            exampleSentence.textContent = ''; 
             pronounceButton.style.display = 'none';
             favoriteButton.style.display = 'none';
 
             if (!data.success) {
                 if (data.verb_not_found) {
-                    lastSearchTerm = searchTerm;
                     messageArea.innerHTML = `
-                        <div class="missing-verb-splash" style="background-color: #ffe0b2; border: 2px solid #ff9800; padding: 25px; color: #e65100;">
-                            <p>The verb <strong>"${searchTerm}"</strong> is not listed yet.</p>
-                            <p>It can be added! Send the request now:</p>
-                            <button class="report-button" id="report-missing-button" onclick="submitMissingVerb()" style="background-color: #e65100; color: white; border: none;">
-                                Send to Administrator
-                            </button>
-                            <p style="font-size:0.9em; margin-top: 15px;">Come back soon!</p>
+                        <div class="missing-verb-splash">
+                            <p>The verb <strong>"${searchTerm}"</strong> is not listed in the sample data.</p>
+                            <p>Try searching for 'to eat', 'τρώω', 'to speak', 'μιλάω', 'to see', or 'βλέπω'.</p>
                         </div>
                     `;
                 } else {
-                    messageArea.innerHTML = `<div class="message" style="background-color: #fff8e1; border: 1px solid #ffecb3; color: #6d4c41; padding: 15px;">${data.message}</div>`;
+                    displayMessage('An error occurred during search.', 'error');
                 }
                 return;
             }
@@ -583,7 +747,7 @@
             // 3. Update Title and Buttons 
             const verbGroup = verbData.Verb_Group ? ` (Group ${verbData.Verb_Group})` : '';
 
-            verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb})${verbGroup} - ${verbData.Translation}`;
+            verbTitle.textContent = `${verbData.English_Verb} (${verbData.Greek_Verb}) - ${verbData.Translation}${verbGroup}`;
             titleContainer.style.display = 'flex';
             pronounceButton.style.display = 'block'; 
             favoriteButton.style.display = 'block'; 
@@ -599,14 +763,9 @@
             // 4. Populate table
             conjugationTable.style.display = 'table';
             
-            if (verbData.Example_Sentence && verbData.Example_Sentence.trim()) {
-                exampleSentence.textContent = `Manual Example: ${verbData.Example_Sentence.trim()}`;
-                exampleSentence.style.display = 'block';
-            }
-            
             const persons = [
                 { label: 'Εγώ', description: '(I)', person: 'Ego' },
-                { label: 'Εσύ', description: '(You)', person: 'Esy' },
+                { label: 'Εσύ', description: '(You sg)', person: 'Esy' },
                 { label: 'Αυτός/ή/ό', description: '(He/She/It)', person: 'HeSheIt' },
                 { label: 'Εμείς', description: '(We)', person: 'We' },
                 { label: 'Εσείς', description: '(You pl)', person: 'YouPl' },
@@ -620,22 +779,23 @@
                 tdLabel.innerHTML = `<strong>${p.label}</strong> <span style="font-size:0.8em; color:#777;">${p.description}</span>`;
                 tr.appendChild(tdLabel);
                 
-                function createClickableCell(value) {
+                function createClickableCell(value, key) {
                     const td = document.createElement('td');
-                    td.textContent = value.trim() || '-';
+                    td.textContent = value && value.trim() ? value.trim() : '-';
                     if (td.textContent !== '-') {
                         td.onclick = (e) => pronounceText(e.target.textContent);
                     }
                     return td;
                 }
                 
-                tr.appendChild(createClickableCell(verbData[`Present_${p.person}`]));
-                tr.appendChild(createClickableCell(verbData[`Aorist_${p.person}`]));
-                tr.appendChild(createClickableCell(verbData[`Future_${p.person}`]));
+                tr.appendChild(createClickableCell(verbData[`Present_${p.person}`], `Present_${p.person}`));
+                tr.appendChild(createClickableCell(verbData[`Aorist_${p.person}`], `Aorist_${p.person}`));
+                tr.appendChild(createClickableCell(verbData[`Future_${p.person}`], `Future_${p.person}`));
                 
+                // Imperative Mood is only available for Esy and YouPl
                 if (p.person === 'Esy' || p.person === 'YouPl') {
-                    tr.appendChild(createClickableCell(verbData[`Present_Imperative_${p.person}`]));
-                    tr.appendChild(createClickableCell(verbData[`Aorist_Imperative_${p.person}`]));
+                    tr.appendChild(createClickableCell(verbData[`Present_Imperative_${p.person}`], `Present_Imperative_${p.person}`));
+                    tr.appendChild(createClickableCell(verbData[`Aorist_Imperative_${p.person}`], `Aorist_Imperative_${p.person}`));
                 } else {
                     tr.insertCell().textContent = '-'; 
                     tr.insertCell().textContent = '-';
@@ -646,74 +806,15 @@
         }
 
 
-        // --- SEARCH EVENT LISTENERS ---
-        document.getElementById('search-form').addEventListener('submit', async function(e) {
-            e.preventDefault(); 
-            const searchTerm = document.getElementById('search-input').value;
-            if (!searchTerm.trim()) {
-                document.getElementById('message-area').innerHTML = '<div class="message" style="background-color: #fff8e1; border: 1px solid #ffecb3; color: #6d4c41; padding: 15px;">Please enter a verb to search.</div>';
-                return;
-            }
-
-            const response = await fetch(`/search?term=${encodeURIComponent(searchTerm)}`);
-            const data = await response.json();
-            displayConjugation(data, searchTerm); 
-        });
-
-        document.getElementById('random-button').addEventListener('click', async function() {
-            const response = await fetch('/random_verb');
-            const data = await response.json();
-            displayConjugation(data, ''); 
-        });
-
-        document.getElementById('generate-sentence-button').addEventListener('click', async function() {
-            const exampleSentence = document.getElementById('example-sentence');
-            const response = await fetch('/generate_sentence');
-            const data = await response.json();
-
-            if (data.success) {
-                exampleSentence.textContent = `Generated Sentence (Verb: ${data.verb || 'Unknown'}): ${data.sentence}`;
-                exampleSentence.style.display = 'block';
-                document.getElementById('message-area').innerHTML = '';
-            } else {
-                exampleSentence.textContent = `Error: ${data.sentence}`;
-                exampleSentence.style.display = 'block';
-            }
-        });
-
-
         // --- VERB FILTERING LOGIC (ALL VERBS) ---
-        async function loadAllVerbs() {
-            const listElement = document.getElementById('all-verbs-list');
-            
-            // Only fetch if cache is empty
-            if (allVerbsCache.length === 0) {
-                 listElement.innerHTML = '<li class="verb-list-item" style="justify-content: center; color: var(--text-color);">Loading verb list...</li>';
-                try {
-                    const response = await fetch('/all_verbs');
-                    const data = await response.json();
-
-                    if (data.success && data.verbs.length > 0) {
-                        allVerbsCache = data.verbs;
-                        renderAllVerbs();
-                    } else {
-                        listElement.innerHTML = `<li class="verb-list-item" style="color: var(--text-color); justify-content: center;">No verbs loaded. Try searching above.</li>`;
-                    }
-                } catch (error) {
-                    listElement.innerHTML = `<li class="verb-list-item" style="color: red; justify-content: center;">Network error: Could not load verbs.</li>`;
-                }
-            } else {
-                renderAllVerbs();
-            }
-        }
 
         function renderAllVerbs(filterTerm = '') {
             const listElement = document.getElementById('all-verbs-list');
             listElement.innerHTML = '';
             const normalizedFilter = filterTerm.trim().toLowerCase();
-
-            if (allVerbsCache.length === 0 && normalizedFilter === '') {
-                 listElement.innerHTML = `<li class="verb-list-item" style="color: var(--text-color); justify-content: center;">Enter a term above to filter the verb list.</li>`;
+            
+            if (allVerbsCache.length === 0) {
+                 listElement.innerHTML = `<li class="verb-list-item" style="justify-content: center; color: var(--error-text);">No verbs loaded in cache.</li>`;
                  return;
             }
 
@@ -733,7 +834,6 @@
             filteredVerbs.forEach(verb => {
                 const li = document.createElement('li');
                 li.className = 'verb-list-item';
-                // Display Verb Group if it exists
                 const groupDisplay = verb.Verb_Group ? `<span style="font-style: italic; color: #666; font-size: 0.9em;"> (Group ${verb.Verb_Group})</span>` : '';
 
                 li.innerHTML = `
@@ -745,7 +845,7 @@
                 `;
                 li.onclick = () => {
                     document.getElementById('search-input').value = verb.Greek_Verb;
-                    document.getElementById('search-form').dispatchEvent(new Event('submit'));
+                    handleSearch(new Event('submit'));
                     openTab(null, 'SearchTab');
                 };
                 listElement.appendChild(li);
@@ -764,6 +864,7 @@
                 const favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY));
                 return Array.isArray(favorites) ? favorites : [];
             } catch (e) {
+                console.error("Could not parse favorites from localStorage", e);
                 return [];
             }
         }
@@ -786,8 +887,6 @@
             if (!currentVerbData) return;
 
             const verbId = currentVerbData.ID;
-            const verbGreek = currentVerbData.Greek_Verb;
-            const verbEnglish = currentVerbData.English_Verb;
             
             let favorites = getFavorites();
             const favoriteButton = document.getElementById('favorite-button');
@@ -797,13 +896,18 @@
                 favoriteButton.classList.remove('is-favorite');
                 favoriteButton.textContent = '☆';
             } else {
-                favorites.push({ ID: verbId, Greek_Verb: verbGreek, English_Verb: verbEnglish });
+                // Ensure we only save essential data
+                const { ID, Greek_Verb, English_Verb, Translation } = currentVerbData;
+                favorites.push({ ID, Greek_Verb, English_Verb, Translation });
                 favoriteButton.classList.add('is-favorite');
                 favoriteButton.textContent = '★';
             }
 
             saveFavorites(favorites);
-            renderFavoritesList(); 
+            // If the user is on the Favorites tab, refresh the list
+            if (document.getElementById('FavoritesTab').style.display === 'block') {
+                renderFavoritesList(); 
+            }
         }
 
         function renderFavoritesList() {
@@ -813,7 +917,7 @@
             favoritesList.innerHTML = ''; 
 
             if (favorites.length === 0) {
-                favoritesMessage.textContent = 'You have not saved any favorite verbs yet.';
+                favoritesMessage.textContent = 'You have not saved any favorite verbs yet. Click the "☆" icon on the Search tab to save one!';
                 favoritesMessage.style.display = 'block';
                 return;
             }
@@ -826,10 +930,10 @@
                 
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'favorite-item-name';
-                nameSpan.textContent = `${verb.Greek_Verb} (${verb.English_Verb})`;
+                nameSpan.textContent = `${verb.Greek_Verb} (${verb.Translation})`;
                 nameSpan.onclick = () => {
                     document.getElementById('search-input').value = verb.Greek_Verb;
-                    document.getElementById('search-form').dispatchEvent(new Event('submit'));
+                    handleSearch(new Event('submit'));
                     openTab(null, 'SearchTab'); 
                 };
                 
@@ -837,19 +941,22 @@
                 removeBtn.className = 'remove-favorite-button';
                 removeBtn.textContent = '✖';
                 removeBtn.title = 'Remove from Favorites';
-                removeBtn.onclick = () => {
-                    // Temporarily set currentVerbData to the favorite item for toggling
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation(); // Prevent search trigger
+                    // Create a temporary object matching the required structure for toggleFavorite
                     currentVerbData = verb; 
                     toggleFavorite(); 
                     currentVerbData = null; 
                     renderFavoritesList(); 
                 };
                 
-                // Style for favorite list item buttons (to override global 3D button)
+                // Style overrides for the small remove button
                 removeBtn.style.boxShadow = 'none';
                 removeBtn.style.backgroundColor = 'transparent';
                 removeBtn.style.color = 'red';
                 removeBtn.style.border = 'none';
+                removeBtn.style.padding = '0';
+                removeBtn.style.fontSize = '1em';
 
 
                 li.appendChild(nameSpan);
@@ -879,14 +986,20 @@
             setMode(!isDark);
         }
         
-        // --- QUIZ LOGIC (UPDATED) ---
+        // --- QUIZ LOGIC (FIXED AND COMPLETE) ---
 
         function getSelectedQuizType() {
             return document.querySelector('input[name="quiz_type"]:checked').value;
         }
 
-        function generateQuizPrompt() {
-            const quizType = getSelectedQuizType();
+        function getRandomVerb() {
+             if (allVerbsCache.length === 0) return null;
+             const randomIndex = Math.floor(Math.random() * allVerbsCache.length);
+             return allVerbsCache[randomIndex];
+        }
+
+        function generateQuizPrompt(quizType) {
+            currentQuizVerb = getRandomVerb();
             const verbDisplay = document.getElementById('quiz-verb');
             const instructions = document.getElementById('quiz-instructions');
             
@@ -895,208 +1008,103 @@
             
             if (!currentQuizVerb) {
                 verbDisplay.textContent = "Error: No verbs loaded.";
-                instructions.textContent = "Please ensure the verb list has loaded.";
+                instructions.textContent = "Cannot start quiz without loaded verbs.";
                 return;
             }
 
             const verb = currentQuizVerb;
-
+            
+            // Handle different quiz types
             if (quizType === 'greek_to_english') {
-                instructions.innerHTML = `Translate the Greek verb below into English.`;
+                instructions.innerHTML = `Translate the Greek infinitive verb below into the English infinitive:`;
                 verbDisplay.textContent = verb.Greek_Verb;
                 currentQuizAnswerKey = 'Translation';
             } 
             else if (quizType === 'english_to_greek') {
-                instructions.innerHTML = `Translate the English infinitive below into the Greek infinitive.`;
+                instructions.innerHTML = `Translate the English infinitive verb below into the Greek infinitive:`;
                 verbDisplay.textContent = verb.English_Verb;
                 currentQuizAnswerKey = 'Greek_Verb';
             } 
             else if (quizType === 'conjugation') {
                 // Randomly select a Tense and Person
                 const tenses = Object.keys(TENSE_MAP);
-                let randomTenseKey = tenses[Math.floor(Math.random() * tenses.length)];
-                
-                let personsArray = Object.values(PERSON_MAP);
-                let randomPerson = personsArray[Math.floor(Math.random() * personsArray.length)];
-                
-                // Handle Imperative Tense limitation (only Esy and YouPl)
-                if (randomTenseKey.includes('Imperative')) {
-                    const imperativePersons = personsArray.filter(p => p.suffix === 'Esy' || p.suffix === 'YouPl');
-                    randomPerson = imperativePersons[Math.floor(Math.random() * imperativePersons.length)];
+                let attempts = 0;
+                let columnKey;
+                let randomTenseKey;
+                let randomPerson;
+                let expectedAnswer;
+
+                while (attempts < 5) {
+                    randomTenseKey = tenses[Math.floor(Math.random() * tenses.length)];
+                    let personsArray = Object.values(PERSON_MAP);
+                    randomPerson = personsArray[Math.floor(Math.random() * personsArray.length)];
+
+                    // Handle Imperative Tense limitation (only Esy and YouPl)
+                    if (randomTenseKey.includes('Imperative')) {
+                        const imperativePersons = personsArray.filter(p => p.suffix === 'Esy' || p.suffix === 'YouPl');
+                        randomPerson = imperativePersons[Math.floor(Math.random() * imperativePersons.length)] || randomPerson;
+                    }
+                    
+                    columnKey = `${randomTenseKey}_${randomPerson.suffix}`;
+                    expectedAnswer = verb[columnKey];
+                    
+                    if (expectedAnswer && expectedAnswer.trim() !== '-') {
+                        break; // Found a valid form
+                    }
+                    attempts++;
                 }
-
-
-                // Construct the Column Key (e.g., 'Present_Ego')
-                const columnKey = `${randomTenseKey}_${randomPerson.suffix}`;
-                const expectedAnswer = verb[columnKey];
                 
-                // If the selected form is empty, retry the whole process (recursion limit 5)
                 if (!expectedAnswer || expectedAnswer.trim() === '-') {
-                    return generateQuizPrompt(); 
+                     // Fallback if conjugation is too sparse
+                     console.warn(`Could not find a valid conjugation form for ${verb.Greek_Verb}. Falling back to Greek->English.`);
+                     return generateQuizPrompt('greek_to_english'); 
                 }
-                
-                // Set the prompt text
-                instructions.innerHTML = `Give the <strong>${TENSE_MAP[randomTenseKey]}</strong> Tense, <strong>${randomPerson.label}</strong> form of the verb <strong>'${verb.English_Verb}'</strong>.`;
-                
-                // Display the key elements (English verb) in the big display area
-                verbDisplay.textContent = verb.English_Verb;
+
+                // Set the prompt and key
+                const tenseLabel = TENSE_MAP[randomTenseKey];
+                const personLabel = randomPerson.label;
+                instructions.innerHTML = `Conjugate <strong>'${verb.Greek_Verb}' (${verb.English_Verb})</strong>. Give the <strong>${tenseLabel}</strong> form for the person <strong>${personLabel}</strong>.`;
+                verbDisplay.textContent = verb.Greek_Verb; 
                 currentQuizAnswerKey = columnKey;
             }
         }
-
-
-        async function loadRandomQuiz() {
-            document.getElementById('quiz-result-area').innerHTML = '';
+        
+        function loadRandomQuiz() {
             document.getElementById('quiz-input').value = '';
-            document.getElementById('quiz-check-button').style.display = 'block';
+            document.getElementById('quiz-result-area').innerHTML = '';
             document.getElementById('next-quiz-button').style.display = 'none';
-            document.getElementById('quiz-verb').textContent = "Loading...";
+            document.getElementById('quiz-check-button').style.display = 'block';
 
-            // Ensure we have the full cache before proceeding
-            if (allVerbsCache.length === 0) {
-                 await loadAllVerbs(); 
-                 if (allVerbsCache.length === 0) return; // Exit if still empty
-            }
-
-            // Get a random verb from the cache
-            const randomIndex = Math.floor(Math.random() * allVerbsCache.length);
-            const randomVerb = allVerbsCache[randomIndex];
-            
-            // Fetch the full conjugation data for the random verb
-            const response = await fetch(`/search?term=${encodeURIComponent(randomVerb.Greek_Verb)}`);
-            const data = await response.json();
-
-            if (data.success) {
-                currentQuizVerb = data.verb;
-                // Generate the prompt and set the answer key based on the selected quiz type
-                generateQuizPrompt();
-            } else {
-                document.getElementById('quiz-verb').textContent = "Error: Failed to fetch verb details.";
-            }
+            const quizType = getSelectedQuizType();
+            generateQuizPrompt(quizType);
         }
 
-
-        function normalizeAnswer(answer) {
-            // Remove leading/trailing whitespace and convert to lowercase for comparison
-            return answer.trim().toLowerCase().replace(/^to\s/, '');
-        }
-
-        document.getElementById('quiz-check-form').addEventListener('submit', function(e) {
+        function checkQuizAnswer(e) {
             e.preventDefault();
-            const userAnswer = document.getElementById('quiz-input').value;
+            const userAnswer = document.getElementById('quiz-input').value.trim().toLowerCase();
             const resultArea = document.getElementById('quiz-result-area');
-            const checkButton = document.getElementById('quiz-check-button');
-            const nextButton = document.getElementById('next-quiz-button');
             
-            if (!userAnswer || !currentQuizVerb || !currentQuizAnswerKey) {
-                resultArea.innerHTML = `<div class="quiz-result incorrect" style="color: red; font-weight: bold;">Please load a verb and enter an answer.</div>`;
+            if (!currentQuizVerb || !currentQuizAnswerKey || !userAnswer) {
+                resultArea.innerHTML = `<span class="incorrect">Please enter an answer.</span>`;
                 return;
             }
 
-            const expectedAnswer = currentQuizVerb[currentQuizAnswerKey];
-            const normalizedUserAnswer = normalizeAnswer(userAnswer);
-            const normalizedCorrectAnswer = normalizeAnswer(expectedAnswer);
+            const correctValue = currentQuizVerb[currentQuizAnswerKey];
+            const correctNormalized = correctValue.trim().toLowerCase();
+            
+            // Simple check: remove all spaces, too
+            const isCorrect = (userAnswer.replace(/\s/g, '') === correctNormalized.replace(/\s/g, ''));
 
-            checkButton.style.display = 'none';
-            nextButton.style.display = 'block';
-
-            if (normalizedUserAnswer === normalizedCorrectAnswer) {
-                resultArea.innerHTML = `<div class="quiz-result correct" style="color: green; font-weight: bold;">✅ Correct!</div>`;
+            if (isCorrect) {
+                resultArea.innerHTML = `<span class="correct">✅ Correct! The answer is "${correctValue}".</span>`;
             } else {
-                // If it's a conjugation quiz, show the target form in Greek
-                let displayCorrect = expectedAnswer;
-                if (currentQuizAnswerKey !== 'Translation') {
-                    displayCorrect = currentQuizVerb.Greek_Verb + ' Form: ' + expectedAnswer;
-                }
-                
-                resultArea.innerHTML = `<div class="quiz-result incorrect" style="color: red; font-weight: bold;">❌ Incorrect. The correct answer is: ${displayCorrect}</div>`;
-            }
-        });
-
-        // --- TAB CONTROL ---
-        function openTab(evt, tabName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            tablinks = document.getElementsByClassName("tab-button");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className = tablinks[i].className.replace(" active", "");
-            }
-            document.getElementById(tabName).style.display = "block";
-            if (evt) {
-                evt.currentTarget.className += " active";
-            } else {
-                document.querySelector(`.tab-button[onclick*="'${tabName}'"]`).className += " active";
+                resultArea.innerHTML = `<span class="incorrect">❌ Incorrect. The correct answer is: <strong>"${correctValue}"</strong>.</span>`;
             }
 
-
-            if (tabName === 'QuizTab') {
-                loadRandomQuiz();
-            } else if (tabName === 'FavoritesTab') {
-                renderFavoritesList(); 
-            } else if (tabName === 'AllVerbsTab') { 
-                loadAllVerbs();
-            }
+            document.getElementById('quiz-check-button').style.display = 'none';
+            document.getElementById('next-quiz-button').style.display = 'block';
         }
 
-
-        // --- SUBMIT MISSING VERB ---
-        async function submitMissingVerb() {
-            const button = document.getElementById('report-missing-button');
-            button.disabled = true;
-            button.textContent = 'Sending...';
-
-            try {
-                const response = await fetch('/report_missing_verb', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ verb: lastSearchTerm })
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    button.textContent = '✅ Sent!';
-                    setTimeout(() => {
-                        document.getElementById('message-area').innerHTML = '';
-                    }, 3000);
-                } else {
-                    alert('Failed to send report. Please try again later.');
-                    button.textContent = 'Try Again';
-                    button.disabled = false;
-                }
-            } catch (error) {
-                console.error('Error reporting verb:', error);
-                alert('A network error occurred.');
-                button.textContent = 'Try Again';
-                button.disabled = false;
-            }
-        }
-
-
-        // --- INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', () => {
-             speechSynthesis.onvoiceschanged = function() {
-                 console.log("SpeechSynthesis voices loaded.");
-             };
-
-             // 1. Load Dark Mode preference
-             const savedTheme = localStorage.getItem('theme');
-             if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                 setMode(true);
-             } else {
-                 setMode(false);
-             }
-             
-             // 2. Set default tab and load initial data
-             document.getElementById('SearchTab').style.display = 'block';
-             document.querySelector('.tab-button[onclick*="' + 'SearchTab' + '"]').className += " active";
-             updateFavoritesCount(getFavorites().length); 
-
-             // 3. Initialize quiz with default type
-             document.querySelector('input[name="quiz_type"][value="greek_to_english"]').checked = true;
-        });
     </script>
 </body>
 </html>
